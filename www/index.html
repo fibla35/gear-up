@@ -86,6 +86,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .map .lock{position:absolute;inset:0;border-radius:13px;background:rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:900}
 .playRow{display:flex;justify-content:center;margin-top:14px;gap:10px;flex-wrap:wrap}
 .playRow .btn{font-size:26px;padding:14px 40px}
+.playRow .cargoTg{font-size:16px;padding:10px 16px}
 /* Overlay */
 .overlay{position:fixed;inset:0;background:rgba(5,10,25,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 .box{background:linear-gradient(180deg,#2a5bb5,#16346f);border-radius:24px;padding:20px 22px;min-width:min(90vw,340px);text-align:center;border:2px solid rgba(255,255,255,.25);box-shadow:0 20px 50px rgba(0,0,0,.5);animation:boxIn .35s cubic-bezier(.2,1.4,.4,1)}
@@ -127,6 +128,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .sw span{position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:900;background:rgba(0,0,0,.6);border-radius:6px;padding:0 3px}
 .sws{padding-bottom:8px}
 .excl{font-size:10px;background:linear-gradient(90deg,#ff6d00,#ffd600);color:#3e2000;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+#cargoHud{position:fixed;right:16px;top:64px;font-weight:900;font-size:15px;color:#ffd180;background:rgba(20,10,0,.55);border-radius:10px;padding:4px 10px;pointer-events:none}
+#comboHud{position:fixed;left:16px;top:72px;font-family:'Lilita One',sans-serif;font-size:17px;color:#ff9ec4;text-shadow:0 2px 0 #6a1b4d;pointer-events:none;padding:3px 12px 9px;border-radius:10px;background:rgba(20,10,30,.6);white-space:nowrap;z-index:5}
+#comboHud::after{content:'';position:absolute;left:12px;bottom:4px;height:3px;border-radius:2px;width:calc(var(--cb,1)*(100% - 24px));background:#ff80ab;box-shadow:0 0 6px #ff80ab}
 #wheelieHud{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-family:'Lilita One',sans-serif;font-size:26px;color:#69f0ae;text-shadow:0 3px 0 #0b5d2a,0 0 12px rgba(0,0,0,.4);pointer-events:none}
 .recs{font-size:12px;text-align:center;margin-top:4px;opacity:.9}
 
@@ -314,6 +318,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
   </div>
   <div id="popups"></div>
   <div id="wheelieHud" class="hidden"></div>
+  <div id="comboHud" class="hidden"></div>
+  <div id="cargoHud" class="hidden"></div>
   <div id="fpsHud"></div>
   <div id="rotate" class="hidden">Gira el móvil en horizontal para ver más terreno</div>
   <button class="pedal" id="brake"><span>FRENO</span></button>
@@ -324,7 +330,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 23-11 19:30</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 23-11 23:40</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -340,6 +346,7 @@ const MANIFEST = {"sizes":{"map/toscana/bg":[1800,600],"map/toscana/strip0":[140
 // ================== MAPAS: VUELTA AL MUNDO ==================
 // Terreno infinito y SIEMPRE IGUAL (semilla fija por mapa). Etapas que endurecen el recorrido.
 // feats: [tipo, peso, etapa mínima]
+const TUNEL = { alpes:2, noruega:2, montserrat:2, himalaya:2, machupicchu:2, patagonia:1, guilin:1, escocia:1, fuji:1, islandia:1 };
 function M(o){ return Object.assign({ g:14, mu:1, amp0:1.5, ampGrow:260, ampMax:10, wl:40, rough:1, spacing:42, surf:0, fx:null, music:'dnb_adrenalina' }, o); }
 const MAPS = [
   M({ id:'pruebas', test:true, name:'Pista de pruebas', price:0, amp0:0, ampGrow:1e9, ampMax:0, seed:5, spacing:40, art:'toscana', feats:[['ramp',3,0],['mound',2,0]], music:'chiptune', desc:'Llano con saltos. Gasolina infinita. Récords aparte.' }),
@@ -483,7 +490,10 @@ const REC6 = { toscana:['jeep','pickup'], escocia:['pickup','patrol'], alpes:['p
 MAPS.forEach(m => { if (REC6[m.id]) m.rec = REC6[m.id]; });
 // variedad de terreno en todos los mapas: hundimientos, tramos irregulares y rampas con hueco detrás
 MAPS.forEach(m => { if (m.test) return; const has = t => m.feats.some(f => f[0] === t);
-  if (!has('dip')) m.feats.push(['dip', 2, 0]); if (!has('bumps')) m.feats.push(['bumps', 2, 0]); if (!has('kicker')) m.feats.push(['kicker', 2, 1]); });
+  if (!has('dip')) m.feats.push(['dip', 2, 0]); if (!has('bumps')) m.feats.push(['bumps', 2, 0]); if (!has('kicker')) m.feats.push(['kicker', 2, 1]);
+  // subidas y bajadas largas en todos los mapas a partir de la etapa 2 (cada vez más empinadas); túneles solo en mapas de montaña y en etapas avanzadas
+  if (!m.test) m.feats.push(['longhill', 2, 1]);
+  if (TUNEL[m.id]) m.feats.push(['tunnel', TUNEL[m.id], 2]); });
 const VEHICLES = KEEP.map(id => { const sp = Object.assign({}, EXTRA7[id] ? EXTRA7[id] : id === 'patrol' ? PATROL : id === 'trial2' ? TRIAL2 : id === 'trialc' ? TRIALC : VSPEC.find(v => v.id === id)); sp.wheel = Array.isArray(SR_WHEEL[id]) ? SR_WHEEL[id].slice() : [SR_WHEEL[id]]; if (id === 'motonieve') { delete sp.track; delete sp.trackW; } sp.price = PRICE[id]; if (LEN[id]) sp.len = LEN[id]; return buildVehicle(sp); });
 
 // ================== SUPERFICIES ==================
@@ -648,7 +658,7 @@ function makeRng(seed){ let s = seed >>> 0 || 1; return () => { s ^= s << 13; s 
 class Terrain {
   constructor(map){
     this.m = map; this.step = 0.3; this.off = 30; this.h = []; this.s = []; this.v = [];
-    this.env = { mu:1, wind:0, tq:1 }; this.geysers = [];
+    this.env = { mu:1, wind:0, tq:1 }; this.geysers = []; this.tunnels = [];
     this.deco = []; this.feat = null; this.nextF = 45; this.rng = makeRng(map.seed * 7919 + 13);
     this.cps = []; let x = 2, L = 300; for (let i = 0; i < 60; i++) { x += L; this.cps.push(x); L += 60; }
     for (const c of this.cps) this.deco.push({ t:'cp', x:c, n:this.cps.indexOf(c) + 2 });
@@ -691,6 +701,8 @@ class Terrain {
       case 'dip': F.len = 4.5 + 4 * R(); F.D = 0.6 + 1.3 * sv * (0.7 + R() * 0.5); break;                     // hundimiento
       case 'bumps': F.len = 10 + 10 * R(); F.A = 0.24 + 0.42 * sv; F.wl = 1.7 + R() * 1.1; F.sd = Math.floor(R() * 999); break;   // terreno irregular
       case 'kicker': F.L = 2.6 + 2 * sv; F.H = 0.6 + 0.9 * sv; F.W = 2.4 + 3.2 * sv * (0.7 + R() * 0.4); F.Dp = 1 + 1.2 * sv; F.Ld = 3 + 2 * sv; F.len = F.L + F.W + F.Ld; break;   // rampa + hueco + recepción
+      case 'tunnel': F.len = 30 + 22 * R() + 18 * sv; F.A = 0.1 + 0.12 * sv; F.sd = Math.floor(R() * 999); this.tunnels.push({ x0:x, x1:x + F.len }); break;   // túnel con techo: oscuro, solo ves con los faros
+      case 'longhill': F.H = 7 + 20 * sv * (0.7 + R() * 0.5); F.Lu = F.H * (6.6 - 3.9 * sv) * (0.9 + R() * 0.25); F.Ld = F.H * (4.5 - 1.8 * sv); F.len = F.Lu + F.Ld; break;   // subida larga y bajada: más alta y empinada en etapas avanzadas
       case 'steps': F.n = 3 + Math.floor(sv * 3); F.sw = 1.4; F.sh = 0.16 + 0.22 * sv; F.len = F.n * F.sw + 2; break;
     }
     // decoración asociada
@@ -738,6 +750,9 @@ class Terrain {
           if (q < wall) d = F.H - (F.H + F.Dp) * sm(q / wall); else if (q > 1 - wall) d = F.H - (F.H + F.Dp) * sm((1 - q) / wall); else d = -F.Dp;
           return [d, -1, 0]; }
         return [F.H * (1 - sm((u - F.L - F.W) / F.Ld)), -1, 0]; }
+      case 'tunnel': { const k = Math.floor(u / 2.2), f = (u - k * 2.2) / 2.2, a = F.A * (0.5 + hashN(k, F.sd)), env = Math.min(1, u / 4, (F.len - u) / 4);
+        return [a * env * Math.sin(Math.PI * f) * (hashN(k, F.sd + 3) > 0.3 ? 1 : -0.6), S_ROCK, 0]; }
+      case 'longhill': { const sm = q => q * q * (3 - 2 * q); return [u < F.Lu ? F.H * sm(u / F.Lu) : F.H * sm(1 - (u - F.Lu) / F.Ld), -1, 0]; }
       case 'steps': { // escalones con el canto en rampa corta (sin golpe seco)
         if (u >= F.n * F.sw) return [F.n * F.sh * Math.max(0, 1 - (u - F.n * F.sw) / 2), S_ROCK, 0];
         const k = Math.floor(u / F.sw), f = u - k * F.sw, rr = 0.45; if (k === 0) return [0, S_ROCK, 0]; return [(k - 1 + (f < rr ? (f / rr) * (f / rr) * (3 - 2 * f / rr) : 1)) * F.sh, S_ROCK, 0]; }
@@ -771,6 +786,8 @@ class Terrain {
   hi(i){ if (i < 0) return this.base(-this.off + i * this.step); while (this.h.length <= i) this.gen(this.h.length); return this.h[i]; }
   si(i){ if (i < 0) return 0; this.hi(i); return this.s[i]; }
   vi(i){ if (i < 0) return 0; this.hi(i); return this.v[i]; }
+  tunnelAt(x){ for (const t of this.tunnels) if (x >= t.x0 && x <= t.x1) return t; return null; }
+  ceilAt(x){ return this.H(x) + 4.6 + 0.35 * this.noise(x / 1.7, 77); }
   surfAt(x){ return this.si(Math.round((x + this.off) / this.step)); }
   H(x){ const f = (x + this.off) / this.step; const i = Math.floor(f), t = f - i; const a = this.hi(i), b = this.hi(i + 1); return a + (b - a) * t; }
   normal(x){ const f = (x + this.off) / this.step; const i = Math.floor(f); const dy = this.hi(i + 1) - this.hi(i); const l = Math.hypot(this.step, dy); return [-dy / l, this.step / l]; }
@@ -1302,6 +1319,33 @@ function updateEnv(dt){
   }
 }
 
+// ---------- combos de trucos ----------
+// cada truco (voltereta, vuelo, caballito, aterrizaje perfecto) suma al combo; si encadenas otro antes de 3,5 s
+// sube el multiplicador (×1,5, ×2… hasta ×5). El extra se cobra al cerrar el combo; si vuelcas, se pierde.
+function comboMul(n){ return Math.min(5, 1 + 0.5 * (n - 1)); }
+function comboAdd(name, base){
+  if (!run.cb) run.cb = { n:0, pts:0, t:0, names:[] };
+  const cb = run.cb; cb.n++; cb.pts += base; cb.t = 3.5; cb.names.push(name);
+  if (cb.n >= 2) { blip(520 + cb.n * 70, 780 + cb.n * 90, 0.12, 'triangle', 0.035); }
+}
+function comboEnd(lost){
+  const cb = run.cb; if (!cb) return; run.cb = null;
+  if (cb.n < 2) return;
+  const m = comboMul(cb.n), extra = Math.round(cb.pts * (m - 1));
+  if (lost) { popup(null, 'Combo ×' + m + ' perdido', '#ff8a80'); return; }
+  run.bonus += extra; run.cbBest = Math.max(run.cbBest || 0, cb.n);
+  popup('combo', 'COMBO ×' + m + '  +' + extra, '#ff80ab'); sfx('combo', 0.6);
+}
+function comboTick(dt){
+  const cb = run.cb;
+  if (cb) {
+    if (car.crashed) comboEnd(true);
+    else if (car.grounded && run.wh === 0) { cb.t -= dt; if (cb.t <= 0) comboEnd(false); }
+  }
+  const c = run.cb, on = !!(c && c.n >= 2);
+  setC('comboHud', 'hidden', !on);
+  if (on) { setT('comboHud', 'COMBO ×' + comboMul(c.n) + ' · ' + c.n + ' trucos'); document.getElementById('comboHud').style.setProperty('--cb', Math.max(0, c.t / 3.5).toFixed(2)); }
+}
 function update(dt){
   run.t += dt;
   let inp = throttle();
@@ -1320,6 +1364,12 @@ function update(dt){
     run.jumpPrev = btn;
   }
   stepCar(car, terr, inp, dt, !def.jump && btn && run.fuel > 0);
+  // techo de los túneles: no se puede atravesar
+  if (terr.tunnels.length && terr.tunnelAt(car.x)) {
+    const c = terr.ceilAt(car.x);
+    if (car.y > c - 1.4) { car.y = c - 1.4; if (car.vy > 0) car.vy = 0; }
+    for (const w of car.wheels) { const l = terr.ceilAt(w.x) - 0.7; if (w.y > l) { w.y = l; if (w.vy > 0) w.vy = 0; } }
+  }
   if (car.saved) { car.saved = false; popup('casco'); sfx('pieza'); }
   if (car.crush && car.grounded && !wasGround && run.lastVy < -7) { const b = Math.round(-run.lastVy * 4 * mapMul()); run.bonus += b; popup('aplastado', '+' + b); }
   if (run.pass && car.grounded && !wasGround && run.lastVy < -9.5) { run.pass--; run.passLost++; popup(null, '¡Un pasajero ha salido volando!', '#ff8a80'); blip(440, 330, 0.3, 'sine', 0.04); }
@@ -1347,13 +1397,18 @@ function update(dt){
       b = Math.round(b * mapMul());
       const rot = mixed ? 'combo' : n === 2 ? 'doble' : n >= 3 ? 'triple' : nb ? 'backflip' : 'frontflip';
       const txt = (mixed ? run.seq.map(c => c === 'B' ? 'BACK' : 'FRONT').join(' + ') : (n > 1 ? n + ' × ' : '') + (nb ? 'BACKFLIP' : 'FRONTFLIP')) + (b ? '  +' + b : '');
-      run.bonus += b; car.nitro = Math.min(1, car.nitro + 0.35 * n); run.flipShow = 1.2;
+      run.bonus += b; comboAdd(rot, b); car.nitro = Math.min(1, car.nitro + 0.35 * n); run.flipShow = 1.2;
       if (def.pedal) run.fuel = Math.min(car.fuelMax, run.fuel + car.fuelMax * 0.35 * n);
       run.flipB += nb; run.flipF += nf;
       const F = map.test ? save.flipsT : save.flips; F.b += nb; F.f += nf;
       popup(rot, txt, mixed ? '#ff80ab' : nf ? '#ffab40' : '#ffeb3b'); sfx(n > 1 || mixed ? 'combo' : 'etapa', 0.5);
       if (Math.random() < 0.6) aiSay(AI_LINES[6]);
-    } else if (run.air > 1.6 && !car.crashed) { const b = Math.round(run.air * 20 * mapMul()); run.bonus += b; popup('vuelo', b ? '+' + b : ''); }
+    } else if (run.air > 1.6 && !car.crashed) { const b = Math.round(run.air * 20 * mapMul()); run.bonus += b; comboAdd('vuelo', b); popup('vuelo', b ? '+' + b : ''); }
+    if (run.air > 0.7 && !car.crashed && car.wheels.length >= 2 && car.wheels.every(w => w.contact)) {
+      const sl = Math.atan2(terr.H(car.x + 1) - terr.H(car.x - 1), 2);
+      let d = car.a - sl; d = Math.atan2(Math.sin(d), Math.cos(d));
+      if (Math.abs(d) < 0.14) { const b = Math.round((30 + run.air * 18) * mapMul()); run.bonus += b; comboAdd('perfecto', b); popup('perfecto', '+' + b, '#80d8ff'); }
+    }
     run.air = 0; run.airRot = 0; run.seq = [];
   }
   // caballitos
@@ -1368,7 +1423,7 @@ function update(dt){
       const d = run.wh; run.wh = 0; run.whLost = 0;
       if (d >= 4 && !car.crashed) {
         const b = Math.round(d * 3 * mapMul() * (P.whM || 1));
-        run.bonus += b; run.whBest = Math.max(run.whBest, d);
+        run.bonus += b; comboAdd('caballito', b); run.whBest = Math.max(run.whBest, d);
         const R = map.test ? save.recWT : save.recW, prev = R[def.id] || 0;
         const rec = d > prev; if (rec) R[def.id] = Math.round(d * 10) / 10;
         popup(rec ? 'record' : 'caballito', d.toFixed(1) + ' m' + (b ? '  +' + b : ''), '#69f0ae');
@@ -1377,12 +1432,15 @@ function update(dt){
     }
     setC('wheelieHud', 'hidden', !(run.wh > 2)); if (run.wh > 2) setT('wheelieHud', 'CABALLITO ' + run.wh.toFixed(1) + ' m');
   }
+  comboTick(dt);
+  if (typeof cargoTick === 'function') cargoTick(dt);
   spawnItems(); collect();
 
   // etapas
   const st = map.test ? 0 : terr.stageAt(car.x);
   if (st > run.stage) {
     run.stage = st;
+    if (typeof cargoDeliver === 'function') cargoDeliver(st);
     const b = Math.round(150 * st * mapMul()); run.bonus += b;
     run.fuel = Math.min(car.fuelMax, run.fuel + car.fuelMax * 0.4);
     popup('etapa', 'ETAPA ' + (st + 1) + '  +' + b, '#ffd740'); sfx('etapa', 0.6);
@@ -1467,6 +1525,7 @@ function update(dt){
 }
 
 function gameOver(){
+  if (run.cb) comboEnd(!!car.crashed);
   state = 'over'; engineSound(false, 0, 0);
   const d = Math.max(0, Math.floor(run.maxX - 2)), k = map.id;
   const prev = save.best[k] || 0, rec = d > prev && d > 0 && !map.test;
@@ -1489,6 +1548,8 @@ function gameOver(){
     (map.test ? '' : `<div class="res"><span>Etapa alcanzada</span><span>${run.stage + 1}</span></div>`) +
     `<div class="res"><span>Mejor caballito</span><span>${run.whBest.toFixed(1)} m · récord ${((map.test ? save.recWT : save.recW)[car.def.id] || 0)} m</span></div>` +
     `<div class="res"><span>Backflips / Frontflips</span><span>${run.flipB} / ${run.flipF}</span></div>` +
+    (run.cargo ? `<div class="res"><span>📦 Cajas entregadas</span><span>${run.delivered || 0} · +${run.cargoPay || 0}</span></div>` : '') +
+    (run.cbBest ? `<div class="res"><span>Mejor combo</span><span>${run.cbBest} trucos · ×${comboMul(run.cbBest)}</span></div>` : '') +
     (car.def.passengers ? `<div class="res"><span>Pasajeros a salvo</span><span>${run.pass} / ${car.def.passengers} · +${passB}</span></div>` : '') +
     `<div class="res"><span>Récord total ${map.name}</span><span>${map.test ? '—' : Math.max(prev, d) + ' m'}</span></div>` +
     `<div class="res"><span>Monedas recogidas</span><span>${run.coins}</span></div>` +
@@ -1567,7 +1628,7 @@ function drawScenery(x0, x1){
   for (let k = Math.floor(x0 / step) - 1; k < x1 / step + 1; k++) {
     if (k * step < 8 || hx(k) < 0.35) continue;
     const x = k * step + (hx(k + 7) - 0.5) * 6, i = Math.round((terr.off + x) / terr.step);
-    if (terr.vi(i) > 0 || terr.si(i) === S_WOOD || terr.si(i) === S_LAVA) continue;
+    if (terr.vi(i) > 0 || terr.si(i) === S_WOOD || terr.si(i) === S_LAVA || (terr.tunnels.length && terr.tunnelAt(x))) continue;
     const o = objs[Math.floor(hx(k + 3) * objs.length) % objs.length], im = img(o.n); if (!im) continue;
     const sz = SZ(o.n), hm = Math.max(0.9, Math.min(3.4, sz[1] / 110)) * (0.85 + hx(k + 11) * 0.3) * (map.trial ? 0.5 : 1);
     const wm = hm * sz[0] / sz[1], gy = terr.H(x) - 0.25;
@@ -1818,7 +1879,7 @@ function drawFx(){
     g.addColorStop(0, 'rgba(10,0,30,0)'); g.addColorStop(1, 'rgba(10,0,30,.62)');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
   }
-  if (map.id === 'alpes' || map.id === 'himalaya') drawSnow();
+  if ((map.id === 'alpes' || map.id === 'himalaya') && !(run.tunK > 0.6)) drawSnow();
   if (fx === 'rain' && run.raining) { ctx.fillStyle = 'rgba(40,60,90,.18)'; ctx.fillRect(0, 0, W, Hh); }
   if (fx === 'wind' || fx === 'sandstorm') {
     const wv = terr.env.wind; if (Math.abs(wv) > 0.6) {
@@ -1965,6 +2026,99 @@ function drawCarAt(c, sx, sy, S, shadowFn, P){
 }
 
 let last = performance.now();
+
+// ---------- túneles ----------
+// pared del fondo, vigas de madera y la montaña encima (detrás del vehículo)
+function drawTunnels(){
+  if (!terr.tunnels.length) return;
+  const x0 = cam.x - (W * 0.3) / cam.s - 8, x1 = cam.x + (W * 0.7) / cam.s + 8, a = artOf(map), S = cam.s;
+  for (const T of terr.tunnels) {
+    if (T.x1 < x0 || T.x0 > x1) continue;
+    const ax = Math.max(T.x0, x0), bx = Math.min(T.x1, x1), dx = 0.4;
+    // pared del fondo
+    ctx.beginPath(); ctx.moveTo(wx(ax), wy(terr.H(ax) - 0.3));
+    for (let x = ax; x <= bx + 0.01; x += dx) ctx.lineTo(wx(x), wy(terr.H(x) - 0.3));
+    for (let x = bx; x >= ax - 0.01; x -= dx) ctx.lineTo(wx(x), wy(terr.ceilAt(x) + 0.2));
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, wy(terr.ceilAt(cam.x)), 0, wy(terr.H(cam.x)));
+    g.addColorStop(0, '#1c1714'); g.addColorStop(0.6, '#3b302a'); g.addColorStop(1, '#4a3c33'); ctx.fillStyle = g; ctx.fill();
+    // vigas de madera cada 5 m (postes y travesaño)
+    ctx.strokeStyle = '#5a3f2c'; ctx.lineCap = 'round';
+    for (let x = Math.ceil((ax - T.x0) / 5) * 5 + T.x0 + 2.5; x < bx; x += 5) {
+      if (x > T.x1 - 1) break;
+      const yg = terr.H(x), yc = terr.ceilAt(x) - 0.15;
+      ctx.lineWidth = 0.22 * S; ctx.beginPath(); ctx.moveTo(wx(x - 1.6), wy(yg)); ctx.lineTo(wx(x - 1.6), wy(yc)); ctx.moveTo(wx(x + 1.6), wy(yg)); ctx.lineTo(wx(x + 1.6), wy(yc)); ctx.stroke();
+      ctx.lineWidth = 0.26 * S; ctx.beginPath(); ctx.moveTo(wx(x - 2), wy(yc)); ctx.lineTo(wx(x + 2), wy(yc)); ctx.stroke();
+      // farolillo colgado cada 15 m
+      if (Math.round((x - T.x0 - 2.5) / 5) % 3 === 1) { ctx.fillStyle = '#ffcc66'; ctx.beginPath(); ctx.arc(wx(x), wy(yc - 0.45), 0.13 * S, 0, 7); ctx.fill(); }
+    }
+    // la montaña encima, con la cara inclinada en las bocas
+    const L = T.x0 - 5, R = T.x1 + 5, top = cam.y + (Hh * 0.52) / S + 2;
+    ctx.beginPath(); ctx.moveTo(wx(L - 3), wy(top));
+    ctx.lineTo(wx(L), wy(terr.ceilAt(T.x0) + 5)); ctx.quadraticCurveTo(wx(T.x0 - 0.6), wy(terr.ceilAt(T.x0) + 1.2), wx(T.x0), wy(terr.ceilAt(T.x0)));
+    for (let x = T.x0; x <= T.x1; x += dx) ctx.lineTo(wx(x), wy(terr.ceilAt(x)));
+    ctx.quadraticCurveTo(wx(T.x1 + 0.6), wy(terr.ceilAt(T.x1) + 1.2), wx(R), wy(terr.ceilAt(T.x1) + 5));
+    ctx.lineTo(wx(R + 3), wy(top)); ctx.closePath();
+    const P = groundPattern(a);
+    if (P && P.pat.setTransform) { const sc = 4 * S / P.w; P.pat.setTransform(new DOMMatrix().translateSelf(wx(0), wy(0)).scaleSelf(sc, sc)); ctx.fillStyle = P.pat; } else ctx.fillStyle = MANIFEST.maps[a].texc;
+    ctx.fill(); ctx.fillStyle = 'rgba(20,14,10,.38)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 0.12 * S; ctx.stroke();
+    // marcos de madera en las dos bocas
+    for (const bx2 of [T.x0, T.x1]) {
+      const yg = terr.H(bx2), yc = terr.ceilAt(bx2);
+      ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 0.34 * S;
+      ctx.beginPath(); ctx.moveTo(wx(bx2), wy(yg - 0.2)); ctx.lineTo(wx(bx2), wy(yc + 0.1)); ctx.stroke();
+      ctx.lineWidth = 0.38 * S; ctx.beginPath(); ctx.moveTo(wx(bx2 - 0.9), wy(yc + 0.05)); ctx.lineTo(wx(bx2 + 0.9), wy(yc + 0.05)); ctx.stroke();
+    }
+  }
+}
+// oscuridad dentro del túnel con la luz de los faros (encima del vehículo)
+let darkCv = null;
+function drawTunnelDark(){
+  run.tunK = 0;
+  if (!terr.tunnels.length) return;
+  const x0 = cam.x - (W * 0.3) / cam.s - 2, x1 = cam.x + (W * 0.7) / cam.s + 2, S = cam.s;
+  const vis = terr.tunnels.filter(T => T.x1 > x0 && T.x0 < x1); if (!vis.length) return;
+  const T0 = terr.tunnelAt(car.x); run.tunK = T0 ? Math.min(1, (car.x - T0.x0) / 5, (T0.x1 - car.x) / 5) : 0;
+  if (!darkCv) darkCv = document.createElement('canvas');
+  if (darkCv.width !== cv.width || darkCv.height !== cv.height) { darkCv.width = cv.width; darkCv.height = cv.height; }
+  const d = darkCv.getContext('2d'); d.setTransform(1, 0, 0, 1, 0, 0); d.clearRect(0, 0, darkCv.width, darkCv.height); d.setTransform(DPR, 0, 0, DPR, 0, 0);
+  d.globalCompositeOperation = 'source-over';
+  for (const T of vis) {
+    // la luz de fuera entra unos metros por cada boca
+    const gx = d.createLinearGradient(wx(T.x0), 0, wx(T.x1), 0), f = Math.min(0.45, 6 / (T.x1 - T.x0));
+    gx.addColorStop(0, 'rgba(4,3,8,0)'); gx.addColorStop(f, 'rgba(4,3,8,.9)'); gx.addColorStop(1 - f, 'rgba(4,3,8,.9)'); gx.addColorStop(1, 'rgba(4,3,8,0)');
+    d.fillStyle = gx; d.beginPath();
+    d.moveTo(wx(T.x0), Hh + 10);
+    for (let x = T.x0; x <= T.x1 + 0.01; x += 0.5) d.lineTo(wx(x), wy(terr.ceilAt(x) - 0.05));
+    d.lineTo(wx(T.x1), Hh + 10); d.closePath(); d.fill();
+  }
+  // faros: cono de luz hacia delante + halo alrededor del vehículo
+  d.globalCompositeOperation = 'destination-out';
+  const ca = Math.cos(car.a), sa = Math.sin(car.a), fw = car.wheels[car.wheels.length - 1];
+  const hx0 = fw.x + ca * 0.5 - sa * 0.55, hy0 = fw.y + sa * 0.5 + ca * 0.55;
+  const sx = wx(hx0), sy = wy(hy0), ang = -car.a, Lc = 13 * S, spread = 0.36;
+  const cg = d.createRadialGradient(sx, sy, 0, sx, sy, Lc);
+  cg.addColorStop(0, 'rgba(0,0,0,1)'); cg.addColorStop(0.55, 'rgba(0,0,0,.85)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+  d.fillStyle = cg; d.beginPath(); d.moveTo(sx, sy); d.arc(sx, sy, Lc, ang - spread, ang + spread); d.closePath(); d.fill();
+  const hg = d.createRadialGradient(wx(car.x), wy(car.y), 0, wx(car.x), wy(car.y), 3.2 * S);
+  hg.addColorStop(0, 'rgba(0,0,0,.75)'); hg.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = hg; d.fillRect(wx(car.x) - 3.2 * S, wy(car.y) - 3.2 * S, 6.4 * S, 6.4 * S);
+  // farolillos del techo
+  for (const T of vis) for (let x = T.x0 + 2.5; x < T.x1 - 1; x += 5) {
+    if (Math.round((x - T.x0 - 2.5) / 5) % 3 !== 1 || x < x0 || x > x1) continue;
+    const lx = wx(x), ly = wy(terr.ceilAt(x) - 0.6), lg = d.createRadialGradient(lx, ly, 0, lx, ly, 2.6 * S);
+    lg.addColorStop(0, 'rgba(0,0,0,.8)'); lg.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = lg; d.fillRect(lx - 2.6 * S, ly - 2.6 * S, 5.2 * S, 5.2 * S);
+  }
+  d.globalCompositeOperation = 'source-over';
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // brillo cálido del haz
+  if (run.tunK > 0) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.12 * run.tunK;
+    const wg = ctx.createRadialGradient(sx, sy, 0, sx, sy, Lc * 0.8); wg.addColorStop(0, '#fff3c4'); wg.addColorStop(1, 'rgba(255,243,196,0)');
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, Lc * 0.8, ang - spread, ang + spread); ctx.closePath(); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  }
+}
 function frame(now){
   const raw = now - last, dt = Math.min(1 / 20, raw / 1000); last = now;
   // calidad automática: si el móvil no llega a ~40 fps, se baja la resolución del lienzo
@@ -1982,10 +2136,13 @@ function frame(now){
     frame.drawnPause = state === 'pause';
     // estado del lienzo limpio en cada fotograma (si algo dejó una transformación o un recorte a medias, aquí se corrige)
     if (ctx.reset) ctx.reset(); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingQuality = 'medium';
-    try { drawSky(); drawGround(); drawItems(state === 'play' ? dt : 0); drawParticles(); } catch (e) { console.error(e); }
+    try { drawSky(); drawGround(); drawTunnels(); drawItems(state === 'play' ? dt : 0); drawParticles(); } catch (e) { console.error(e); }
     try { if (typeof drawExtras === 'function') drawExtras(); } catch (e) { console.error(e); }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1;
     try { drawCarAt(car, wx, wy, cam.s, x => terr.H(x)); } catch (e) { console.error(e); }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1;
+    try { if (typeof drawCrates === 'function') drawCrates(true); } catch (e) { console.error(e); }
+    try { drawTunnelDark(); } catch (e) { console.error(e); }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1;
     try { drawFx(); } catch (e) { console.error(e); }
   }
@@ -2156,7 +2313,7 @@ function renderMenu(){
     <div class="card"><div class="tabs">${[['veh','🚙 Vehículos'],['taller','🔧 Taller'],['mapas','🗺️ Mapas'],['trial','🏍️ Trial'],['retos','🎯 Retos']].map(t => `<button class="tab ${tab === t[0] ? 'on' : ''}" data-tab="${t[0]}">${t[1]}${t[0] === 'retos' && typeof chPending === 'function' && chPending() ? `<span class="dot">${chPending()}</span>` : ''}</button>`).join('')}</div>
       <div class="tabBody">${body}</div></div>
   </div>
-  <div class="playRow"><div class="selMap">🗺️ ${MAPS[mIdx(save.selM)].name}</div><button class="btn green" id="play">¡A CORRER! ▶</button></div>
+  <div class="playRow"><div class="selMap">🗺️ ${MAPS[mIdx(save.selM)].name}</div>${typeof cargoOK === 'function' && cargoOK(VEHICLES[viewV].id) ? `<button class="btn ${save.cargo ? 'blue' : 'gray'} cargoTg" id="cargoTg">📦 Reparto: ${save.cargo ? 'SÍ' : 'NO'}</button>` : ''}<button class="btn green" id="play">¡A CORRER! ▶</button></div>
   <div style="text-align:center;font-size:12px;opacity:.7;margin-top:8px">Teclado: ← freno · → gas · Espacio nitro/salto · Esc pausa</div>`;
   const tb = m.querySelector('.tabBody'); if (tb) tb.scrollTop = sc;
   drawPreview();
@@ -2187,6 +2344,7 @@ function renderMenu(){
   if (tab === 'trial') bindTrial(m);
   document.getElementById('setBtn').onclick = () => settingsPanel();
   document.getElementById('tst').onclick = () => askTest();
+  const cg = document.getElementById('cargoTg'); if (cg) cg.onclick = () => { save.cargo = !save.cargo; persist(); if (save.cargo) toast('📦 Lleva las cajas sin perderlas: en cada etapa cobras por cada caja que llegue'); renderMenu(); };
   document.getElementById('play').onclick = () => {
     if (!save.ownedV.includes(VEHICLES[viewV].id)) { toast('Compra este vehículo o elige otro'); return; }
     save.selV = VEHICLES[viewV].id; persist(); startRun();
@@ -2385,6 +2543,7 @@ function drawGhost(){
 
 // ---------- dibujo extra en la partida (llamado desde frame, antes del coche) ----------
 function drawExtras(){
+  try { drawCrates(); } catch (e) { console.error(e); }
   if (!map || !terr) return;
   if (!map.test) chestSpots(map).forEach((x, i) => {
     if (chestMask(map.id) & (1 << i)) return;
@@ -2440,6 +2599,101 @@ function bindRetos(m){
     const c = save.ch.list[+b.dataset.claim]; if (!c.done || c.got) return;
     c.got = true; save.coins += c.r; persist(); sfx('compra', 0.6); toast('✔ Reto cobrado: +' + fmt(c.r)); renderMenu();
   });
+}
+
+// ---------- modo reparto: cajas sueltas en la caja del vehículo ----------
+// fracciones de la imagen de la carrocería: x0/x1 = principio y fin de la caja, fl = suelo donde apoyan las cajas,
+// lip = alto del portón trasero, wall = alto de la pared delantera (cabina); n = número de cajas
+const CARGO = {
+  pickup:{ x0:0.035, x1:0.33, fl:0.39, lip:0.31, wall:0.06, n:3 },
+  dakartruck:{ x0:0.03, x1:0.56, fl:0.5, lip:0.42, wall:0.12, n:4, front:true },   // delante de la jaula
+  camion:{ x0:0.02, x1:0.64, fl:0.035, lip:0.0, wall:-0.01, n:5 },   // en el techo del furgón
+};
+function cargoOK(id){ return !!CARGO[id]; }
+function cargoBed(){
+  const k = CARGO[car.def.id], sp = car.def.spr, c = car.com || 0;
+  return { x0:sp.x0 + k.x0 * sp.w, x1:sp.x0 + k.x1 * sp.w, fy:sp.y0 - k.fl * sp.h - c, lip:sp.y0 - k.lip * sp.h - c, wall:sp.y0 - k.wall * sp.h - c, n:k.n };
+}
+function cargoInit(){
+  const B = cargoBed(), L = B.x1 - B.x0, s = Math.min(0.62, L / 2.15), per = Math.max(1, Math.floor(L / (s * 1.04)));
+  const ca = Math.cos(car.a), sa = Math.sin(car.a);
+  run.crates = []; run.cargoS = s; run.delivered = run.delivered || 0; run.cargoN = B.n;
+  for (let i = 0; i < B.n; i++) {
+    const row = Math.floor(i / per), col = i % per;
+    const lx = B.x0 + s * 0.55 + col * s * 1.04 + (row % 2) * s * 0.3, ly = B.fy + s * 0.5 + row * s * 1.01;
+    run.crates.push({ x:car.x + lx * ca - ly * sa, y:car.y + lx * sa + ly * ca, vx:car.vx, vy:car.vy, a:car.a, on:true, t:0, hue:i });
+  }
+}
+function cargoTick(dt){
+  if (run.cargo === undefined) run.cargo = !!(save.cargo && cargoOK(car.def.id) && !map.trial && !map.test);
+  if (!run.cargo) { setC('cargoHud', 'hidden', true); return; }
+  if (!run.crates) cargoInit();
+  const B = cargoBed(), s = run.cargoS, h2 = s / 2, g = map.g || 14, N = 3, h = dt / N;
+  for (let it = 0; it < N; it++) {
+    const ca = Math.cos(car.a), sa = Math.sin(car.a);
+    const loc = [];
+    for (const k of run.crates) {
+      k.vy -= g * h; k.x += k.vx * h; k.y += k.vy * h;
+      if (!k.on) {   // caída libre hasta el suelo
+        const gy = terr.H(k.x); if (k.y - h2 < gy) { k.y = gy + h2; k.vy = Math.abs(k.vy) > 2 ? -k.vy * 0.25 : 0; k.vx *= 0.9; k.w = (k.w || 0) * 0.8; }
+        k.a += (k.w || 0) * h; continue;
+      }
+      const dx = k.x - car.x, dy = k.y - car.y;
+      let lx = dx * ca + dy * sa, ly = -dx * sa + dy * ca;
+      // velocidad relativa a la caja del vehículo, en ejes del vehículo
+      const vpx = car.vx - car.w * dy, vpy = car.vy + car.w * dx;
+      let rx = (k.vx - vpx) * ca + (k.vy - vpy) * sa, ry = -(k.vx - vpx) * sa + (k.vy - vpy) * ca, touch = false;
+      if (lx > B.x0 - h2 * 0.6 && lx < B.x1 + h2 * 0.6 && ly < B.fy + h2 && ly > B.fy - h2) { ly = B.fy + h2; if (ry < 0) ry = -ry * 0.08; rx *= 0.86; touch = true; }   // suelo
+      if (ly < B.lip + h2 * 0.9 && lx < B.x0 + h2 && lx > B.x0 - h2) { lx = B.x0 + h2; if (rx < 0) rx = -rx * 0.2; }   // portón
+      if (ly < B.wall + h2 * 0.9 && lx > B.x1 - h2 && lx < B.x1 + h2) { lx = B.x1 - h2; if (rx > 0) rx = -rx * 0.2; }  // cabina
+      k.touch = touch; loc.push([k, lx, ly, rx, ry]);
+    }
+    // cajas entre sí (en ejes del vehículo)
+    for (let i = 0; i < loc.length; i++) for (let j = i + 1; j < loc.length; j++) {
+      const A = loc[i], C = loc[j], ox = s - Math.abs(A[1] - C[1]), oy = s - Math.abs(A[2] - C[2]);
+      if (ox <= 0 || oy <= 0) continue;
+      if (ox < oy) { const sg = A[1] < C[1] ? -1 : 1; A[1] += sg * ox / 2; C[1] -= sg * ox / 2; const m = (A[3] + C[3]) / 2; A[3] = C[3] = m; }
+      else { const lo = A[2] < C[2] ? A : C, hi = lo === A ? C : A; lo[2] -= oy / 2; hi[2] += oy / 2; if (hi[4] < lo[4]) { hi[4] = lo[4]; } hi[3] = hi[3] * 0.55 + lo[3] * 0.45; hi.touch = true; }
+    }
+    for (const [k, lx, ly, rx, ry] of loc) {
+      const wxp = car.x + lx * ca - ly * sa, wyp = car.y + lx * sa + ly * ca, dx = wxp - car.x, dy = wyp - car.y;
+      const vpx = car.vx - car.w * dy, vpy = car.vy + car.w * dx;
+      k.x = wxp; k.y = wyp; k.vx = vpx + rx * ca - ry * sa; k.vy = vpy + rx * sa + ry * ca;
+      k.a += (car.a - k.a) * Math.min(1, h * 12);
+      if (lx < B.x0 - s * 1.1 || lx > B.x1 + s * 1.1 || ly < B.fy - 1 || ly > B.fy + 4) {   // se ha caído
+        k.on = false; k.w = (Math.random() - 0.5) * 6; run.cargoLost = (run.cargoLost || 0) + 1;
+        popup(null, '📦 ¡Caja perdida!', '#ff8a80'); blip(300, 160, 0.25, 'square', 0.03);
+      }
+    }
+  }
+  for (const k of run.crates) if (!k.on) k.t += dt;
+  run.crates = run.crates.filter(k => k.on || k.t < 2.5);
+  const n = run.crates.filter(k => k.on).length;
+  setC('cargoHud', 'hidden', false); setT('cargoHud', '📦 ' + n + ' / ' + run.cargoN);
+}
+function cargoDeliver(st){
+  if (!run.cargo || !run.crates) return;
+  // cada etapa es un viaje: se cobra lo que llega y se carga de nuevo la caja entera
+  const n = run.crates.filter(k => k.on).length, d0 = run.delivered;
+  if (n) { const pay = Math.round(n * 70 * st * mapMul()); run.bonus += pay; run.delivered += n; run.cargoPay = (run.cargoPay || 0) + pay;
+    setTimeout(() => popup(null, '📦 Entrega: ' + n + (n === 1 ? ' caja' : ' cajas') + '  +' + pay, '#ffd180'), 700); }
+  setTimeout(() => { if (state !== 'play' || !run.crates) return; cargoInit(); popup(null, '📦 Carga nueva', '#ffd180'); }, 1600);
+}
+function drawCrates(front){
+  if (!run || !run.crates) return;
+  if (!!(CARGO[car.def.id] && CARGO[car.def.id].front) !== !!front) return;
+  const s = run.cargoS * cam.s;
+  for (const k of run.crates) {
+    ctx.save(); ctx.translate(wx(k.x), wy(k.y)); ctx.rotate(-k.a);
+    if (!k.on) ctx.globalAlpha = Math.max(0, 1 - Math.max(0, k.t - 1.5));
+    const c1 = ['#c98b4a', '#b97c3e', '#d49a57'][k.hue % 3];
+    ctx.fillStyle = c1; ctx.strokeStyle = '#6b4424'; ctx.lineWidth = Math.max(1, s * 0.07);
+    ctx.fillRect(-s / 2, -s / 2, s, s); ctx.strokeRect(-s / 2, -s / 2, s, s);
+    ctx.lineWidth = Math.max(1, s * 0.09); ctx.beginPath(); ctx.moveTo(-s / 2, -s / 2); ctx.lineTo(s / 2, s / 2); ctx.moveTo(s / 2, -s / 2); ctx.lineTo(-s / 2, s / 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(-s / 2, -s / 2, s, s * 0.12);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 // ================= MODO TRIAL: zonas cortas, técnicas, con faltas y estrellas =================
