@@ -1,0 +1,8 @@
+{
+  "appId": "com.fibla.gearup",
+  "appName": "Gear Up!",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#101826"
+  }
+}
