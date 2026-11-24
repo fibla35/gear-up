@@ -330,7 +330,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 24-11 20:45</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 24-11 21:00</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -1239,7 +1239,7 @@ function startRun(){
     nextCoin:18, nextFuel:95, fuelN:0, overT:0, reason:null, stage:0, progT:0, progX:2, warned:false, pass:def.passengers || 0, passLost:0,
     aiT:4, aiMsg:null, jumpPrev:false, nextObj:6, objs:[], rainT:0 };
   items = []; particles = [];
-  cam.x = car.x; cam.y = car.y + 1; cam.vx = 0; cam.look = 0;
+  cam.x = car.x; cam.y = car.y + 1; cam.vx = 0; cam.vy = 0; cam.look = 0;
   state = 'play';
   show('hud'); hide('menu'); hide('overlay'); hide('title');
   const special = def.jump ? 'SALTO' : (car.turbo === 'nitro' || car.turbo === 'cohete') ? (car.turbo === 'cohete' ? 'COHETE' : 'NITRO') : null;
@@ -1504,9 +1504,13 @@ function update(dt){
     ty = Math.max(ty, car.y - Hh * 0.3 / cam.s); ty = Math.min(ty, car.y + Hh * 0.25 / cam.s);
     cam.y += (ty - cam.y) * Math.min(1, dt * 1.3);
   } else {
+    // sigue la media del suelo (los botes del coche no mueven la pantalla, que mareaba) y solo sube con el coche en los saltos
+    let sg = 0; for (let k = -2; k <= 6; k++) sg += terr.H(car.x + k * 1.2); const gAvg = sg / 9;
+    ty = gAvg + 1.5 + Math.max(0, car.y - Math.max(gY, gAvg) - 0.8) * 0.85;
     ty = Math.min(ty, gY + Hh * 0.34 / cam.s);
-    ty = Math.max(ty, car.y - Hh * 0.36 / cam.s);
-    cam.y += (ty - cam.y) * Math.min(1, dt * 2.2);
+    ty = Math.max(ty, car.y - Hh * 0.36 / cam.s); ty = Math.min(ty, car.y + Hh * 0.3 / cam.s);
+    cam.vy = (cam.vy || 0) + ((ty - cam.y) * 6 - (cam.vy || 0)) * Math.min(1, dt * 4);   // muelle suave, sin tirones
+    cam.y += cam.vy * dt;
   }
   const baseS = Math.min(Hh / 10.6, W / 15.2) * Math.max(0.7, Math.min(1.1, Math.sqrt(3.4 / def.len)));
   const target = map.trial ? baseS : baseS * (1 - Math.min(0.2, spd / 90)) / (1 + Math.min(0.4, air * 0.035));
@@ -1817,14 +1821,21 @@ function drawDecos(x0, x1){
 }
 function drawItems(dt){
   for (const it of items) {
-    let X = wx(it.x), Y = wy(it.y + Math.sin(run.t * 3 + it.ph) * 0.08);
+    let X = wx(it.x), Y = wy(it.y + Math.sin(run.t * 2 + it.ph) * 0.05);
     if (X < -60 || X > W + 60) continue;
     let sc = 1, al = 1;
     if (it.got) { it.gt += dt; sc = 1 + it.gt * 3; al = 1 - it.gt * 3; Y -= it.gt * 120; if (al <= 0) { it.done = true; continue; } }
     ctx.globalAlpha = al;
     if (it.t === 'coin') {
-      const im = img('hud/' + it.base), r = 0.42 * cam.s * sc, sq = Math.abs(Math.cos(run.t * 3 + it.ph)) * 0.65 + 0.35;
-      if (im) { ctx.save(); ctx.translate(X, Y); ctx.scale(sq, 1); ctx.drawImage(im, -r, -r, r * 2, r * 2); ctx.restore(); }
+      // moneda quieta (sin girar: a velocidad parpadeaba y mareaba), con halo para verla bien sobre cualquier fondo y un destello que pasa
+      const im = img('hud/' + it.base), r = 0.46 * cam.s * sc;
+      if (im) {
+        if (!it.got) { ctx.fillStyle = 'rgba(255,236,140,.28)'; ctx.beginPath(); ctx.arc(X, Y, r * 1.22, 0, 7); ctx.fill(); }
+        ctx.drawImage(fit(im, r * 2 * DPR), X - r, Y - r, r * 2, r * 2);
+        const sh = ((run.t * 0.8 + it.ph) % 2.2) / 2.2;
+        if (sh < 0.3 && !it.got) { ctx.save(); ctx.beginPath(); ctx.arc(X, Y, r * 0.92, 0, 7); ctx.clip(); ctx.globalAlpha = al * 0.55; ctx.fillStyle = '#fff';
+          const sx2 = X - r + sh / 0.3 * r * 2.6; ctx.beginPath(); ctx.moveTo(sx2 - r * 0.5, Y - r); ctx.lineTo(sx2 - r * 0.2, Y - r); ctx.lineTo(sx2 - r * 0.9, Y + r); ctx.lineTo(sx2 - r * 1.2, Y + r); ctx.fill(); ctx.restore(); ctx.globalAlpha = al; }
+      }
     } else if (isElec(car)) {   // vehículo eléctrico: carga de batería en lugar del bidón
       const r = 0.62 * cam.s * sc, gl = ctx.createRadialGradient(X, Y, r * 0.2, X, Y, r * 1.4); gl.addColorStop(0, 'rgba(128,216,255,.9)'); gl.addColorStop(1, 'rgba(41,121,255,0)');
       ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(X, Y, r * 1.4, 0, 7); ctx.fill();
