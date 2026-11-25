@@ -69,6 +69,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .btn.blue{background:linear-gradient(180deg,#4fa8ff,#1e63d6);box-shadow:0 4px 0 #0d377e,0 6px 14px rgba(0,0,0,.3)}
 .btn.gray{background:linear-gradient(180deg,#8a93a6,#5b6375);box-shadow:0 4px 0 #343a47}
 .btn[disabled]{filter:grayscale(.8) brightness(.8);pointer-events:none}
+.upRow .btn.upMinus{min-width:0!important;width:auto!important;flex:0 0 auto;padding:8px 12px;margin-right:6px;font-size:17px}
 .upHint{font-size:12px;color:#b3e5fc;margin:1px 0 3px}.upHint b{color:#69f0ae}
 .upRow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1)}
 .upRow:last-child{border-bottom:none}
@@ -331,7 +332,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 24-11 21:30</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button class="btn green" id="titlePlay">▶ JUGAR</button><div class="tsub">Taller · 24 vehículos · 22 mapas · modo Trial · versión 25-11 21:15</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -2310,6 +2311,7 @@ function renderMenu(){
         if (u.id === 'engine') { const vk = L => { const c = makeCar(def, Object.assign({}, up, { engine:L }), cfg, flatT, 0), w = c.wheels.find(w => w.drive); return Math.round(c.maxW * w.r * 3.6); };
           hint = `<div class="upHint">Punta ${vk(l)} km/h${max ? '' : ' → <b>' + vk(l + 1) + ' km/h</b>'} · más fuerza al subir</div>`; }
         return `<div class="upRow"><div class="upIcon">${u.icon}</div><div class="upMid"><div class="upName ${l ? 'got' : ''}">${u.name} <span class="lvl">Nivel ${l}/${UP_MAX}</span></div>${hint}<div class="pips">${Array.from({ length:UP_MAX }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</div></div>
+          ${l > 0 && owned ? `<button class="btn gray upMinus" data-down="${u.id}" data-ref="${Math.round(upgradeCost(viewV % 12, l - 1) * (P.disc || 1) / 10) * 10}" title="Quitar un nivel y recuperar las monedas">−1</button>` : ''}
           <button class="btn ${max ? 'gold' : 'green'} ${justBought === 'up:' + u.id ? 'flash' : ''}" data-up="${u.id}" data-cost="${cost}" ${max || !owned ? 'disabled' : ''}>${max ? '★ MÁX' : `+1 · <span class="coin"></span>${fmt(cost)}`}</button></div>`;
       }).join('');
     } else if (subtab === 'piezas') {
@@ -2375,7 +2377,9 @@ function renderMenu(){
   m.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; m.querySelector('.tabBody').scrollTop = 0; renderMenu(); });
   m.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => { subtab = b.dataset.sub; renderMenu(); });
   m.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { viewV = +b.dataset.v; const v = VEHICLES[viewV]; if (save.ownedV.includes(v.id)) { save.selV = v.id; persist(); } renderMenu(); });
-  m.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up, cost = +b.dataset.cost; if (up[id] >= UP_MAX) return; askBuy('Mejora: ' + (b.querySelector('b') ? b.querySelector('b').textContent : id), cost, () => { if (buyPay(cost)) { up[id]++; justBought = 'up:' + id; toast('✔ Mejora comprada · nivel ' + up[id]); persist(); renderMenu(); } }); });
+  // mejoras: un toque sube un nivel (sin confirmar); «−1» lo quita y devuelve las monedas, para pasarlo a otra mejora
+  m.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up, cost = +b.dataset.cost; if (up[id] >= UP_MAX) return; if (buyPay(cost)) { up[id]++; justBought = 'up:' + id; persist(); renderMenu(); } });
+  m.querySelectorAll('[data-down]').forEach(b => b.onclick = () => { const id = b.dataset.down, ref = +b.dataset.ref; if (!(up[id] > 0)) return; up[id]--; save.coins += ref; justBought = ''; sfx('moneda', 0.4); toast('↩ Nivel quitado · +' + fmt(ref) + ' monedas'); persist(); renderMenu(); });
   m.querySelectorAll('[data-part]').forEach(b => b.onclick = () => {
     if (!owned) { toast('Primero compra el vehículo'); return; }
     const [cat, id] = b.dataset.part.split(':'), it = partOf(cat, id);
