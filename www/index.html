@@ -396,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 07:40</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 08:00</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -2222,12 +2222,12 @@ function drawTunnels(){
       ctx.globalAlpha = 1; ctx.restore(); }
     // entramados de mina cada 5 m y farolillos colgados cada 15 m
     const fr = TP('col') || TP('marco'), lan = TP('farol'), isCol = !!TP('col');
-    for (let x = Math.ceil((ax - T.x0) / 5) * 5 + T.x0 + 2.5; x < bx; x += 6) {
+    for (let x = T.x0 + 3 + Math.max(0, Math.ceil((ax - 2 - T.x0 - 3) / 6)) * 6; x < bx + 2; x += 6) {
       if (x > T.x1 - 1) break;
       const yg = terr.H(x), yc = terr.ceilAt(x) - 0.1, h = yc - yg + 0.3, w = h * (fr ? fr.naturalWidth / fr.naturalHeight : 1);
       // columnas del estilo del mapa (piedra, hielo, lava, selva…) sosteniendo el techo
       if (fr) ctx.drawImage(fit(fr, w * S * DPR), wx(x) - w * S / 2, wy(yc + 0.15), w * S, h * S);
-      if (lan && Math.round((x - T.x0 - 2.5) / 5) % 3 === 1) { const lh = 1.1, lw = lh * lan.naturalWidth / lan.naturalHeight; ctx.drawImage(fit(lan, lw * S * DPR), wx(x) - lw * S / 2, wy(yc - 0.5), lw * S, lh * S); }
+      if (lan && Math.round((x - T.x0 - 3) / 6) % 2 === 1) { const lh = 1.1, lw = lh * lan.naturalWidth / lan.naturalHeight; ctx.drawImage(fit(lan, lw * S * DPR), wx(x) - lw * S / 2, wy(yc - 0.5), lw * S, lh * S); }
     }
     // la montaña encima, con la cara inclinada en las bocas
     const L = T.x0 - 5, R = T.x1 + 5, top = cam.y + (Hh * 0.52) / S + 2;
@@ -2253,12 +2253,10 @@ function drawTunnelFront(){
   const x0 = cam.x - (W * 0.3) / cam.s - 8, x1 = cam.x + (W * 0.7) / cam.s + 8, S = cam.s, st = TUN_STYLE[map.id] != null ? TUN_STYLE[map.id] : 2;
   for (const T of terr.tunnels) {
     if (T.x1 < x0 - 6 || T.x0 > x1 + 6) continue;
-    for (const [bx, side] of [[T.x0, 1], [T.x1, -1]]) {
-      const im = img('map/' + map.id + '/t' + (side > 0 ? 'b' : 'c')) || img('map/' + map.id + '/tb'); if (!im) continue;
-      const yg = Math.min(terr.H(bx - 1.5), terr.H(bx), terr.H(bx + 1.5)), h = (terr.ceilAt(bx) - yg) / 0.7, w = h * im.naturalWidth / im.naturalHeight;
-      const f = fit(im, w * S * DPR), X = wx(bx + 0.4 * side), Y = wy(yg + h - 0.12);
-      if (side > 0) ctx.drawImage(f, X - w * S, Y, w * S, h * S);
-      else { ctx.save(); ctx.translate(X + w * S, Y); ctx.scale(-1, 1); ctx.drawImage(f, 0, 0, w * S, h * S); ctx.restore(); }
+    const col = img('map/' + map.id + '/tcol'); if (!col) continue;
+    for (const bx of [T.x0 + 0.3, T.x1 - 0.3]) {
+      const yg = Math.min(terr.H(bx - 0.5), terr.H(bx + 0.5)) - 0.1, yc = terr.ceilAt(bx) + 0.25, h = yc - yg, w = h * col.naturalWidth / col.naturalHeight * 1.15;
+      ctx.drawImage(fit(col, w * S * DPR), wx(bx) - w * S / 2, wy(yc), w * S, h * S);
     }
   }
 }
@@ -2278,7 +2276,7 @@ function drawTunnelDark(){
   for (const T of vis) {
     // la luz de fuera entra unos metros por cada boca
     const gx = d.createLinearGradient(wx(T.x0), 0, wx(T.x1), 0), f = Math.min(0.45, 6 / (T.x1 - T.x0));
-    gx.addColorStop(0, 'rgba(4,3,8,0)'); gx.addColorStop(f, 'rgba(4,3,8,.9)'); gx.addColorStop(1 - f, 'rgba(4,3,8,.9)'); gx.addColorStop(1, 'rgba(4,3,8,0)');
+    gx.addColorStop(0, 'rgba(8,6,12,0)'); gx.addColorStop(f, 'rgba(8,6,12,.62)'); gx.addColorStop(1 - f, 'rgba(8,6,12,.62)'); gx.addColorStop(1, 'rgba(8,6,12,0)');
     d.fillStyle = gx; d.beginPath();
     d.moveTo(wx(T.x0), Hh + 10);
     for (let x = T.x0; x <= T.x1 + 0.01; x += 0.5) d.lineTo(wx(x), wy(terr.ceilAt(x) - 0.05));
@@ -2291,14 +2289,15 @@ function drawTunnelDark(){
   const sx = wx(hx0), sy = wy(hy0), ang = -car.a, Lc = 13 * S, spread = 0.36;
   const cg = d.createRadialGradient(sx, sy, 0, sx, sy, Lc);
   cg.addColorStop(0, 'rgba(0,0,0,1)'); cg.addColorStop(0.55, 'rgba(0,0,0,.85)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
-  d.fillStyle = cg; d.beginPath(); d.moveTo(sx, sy); d.arc(sx, sy, Lc, ang - spread, ang + spread); d.closePath(); d.fill();
+  for (let k = 0; k < 7; k++) { const sp = 0.12 + k * 0.06; d.globalAlpha = 0.24; d.fillStyle = cg; d.beginPath(); d.moveTo(sx, sy); d.arc(sx, sy, Lc, ang - sp, ang + sp); d.closePath(); d.fill(); }
+  d.globalAlpha = 1;
   const hg = d.createRadialGradient(wx(car.x), wy(car.y), 0, wx(car.x), wy(car.y), 3.2 * S);
   hg.addColorStop(0, 'rgba(0,0,0,.75)'); hg.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = hg; d.fillRect(wx(car.x) - 3.2 * S, wy(car.y) - 3.2 * S, 6.4 * S, 6.4 * S);
   // farolillos del techo
-  for (const T of vis) for (let x = T.x0 + 2.5; x < T.x1 - 1; x += 5) {
-    if (Math.round((x - T.x0 - 2.5) / 5) % 3 !== 1 || x < x0 || x > x1) continue;
-    const lx = wx(x), ly = wy(terr.ceilAt(x) - 0.6), lg = d.createRadialGradient(lx, ly, 0, lx, ly, 2.6 * S);
-    lg.addColorStop(0, 'rgba(0,0,0,.8)'); lg.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = lg; d.fillRect(lx - 2.6 * S, ly - 2.6 * S, 5.2 * S, 5.2 * S);
+  for (const T of vis) for (let x = T.x0 + 3; x < T.x1 + 2; x += 6) {
+    if (Math.round((x - T.x0 - 3) / 6) % 2 !== 1 || x < x0 || x > x1) continue;
+    const lx = wx(x), ly = wy(terr.ceilAt(x) - 0.75), lg = d.createRadialGradient(lx, ly, 0, lx, ly, 3.6 * S);
+    lg.addColorStop(0, 'rgba(0,0,0,.9)'); lg.addColorStop(0.5, 'rgba(0,0,0,.45)'); lg.addColorStop(1, 'rgba(0,0,0,0)'); d.fillStyle = lg; d.fillRect(lx - 3.6 * S, ly - 3.6 * S, 7.2 * S, 7.2 * S);
   }
   d.globalCompositeOperation = 'source-over';
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -2306,7 +2305,7 @@ function drawTunnelDark(){
   if (run.tunK > 0) {
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.12 * run.tunK;
     const wg = ctx.createRadialGradient(sx, sy, 0, sx, sy, Lc * 0.8); wg.addColorStop(0, '#fff3c4'); wg.addColorStop(1, 'rgba(255,243,196,0)');
-    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, Lc * 0.8, ang - spread, ang + spread); ctx.closePath(); ctx.fill();
+    for (let k = 0; k < 4; k++) { const sp = 0.14 + k * 0.08; ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.arc(sx, sy, Lc * 0.8, ang - sp, ang + sp); ctx.closePath(); ctx.fill(); }
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
 }
