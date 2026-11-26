@@ -396,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 10:15</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 15:20</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -2975,18 +2975,18 @@ class TrialTerrain extends Terrain {
   }
   gen(j){
     const x = -this.off + j * this.step, b = this.base(x);
-    let y = b, s = this.m.surf || 0;
+    let y = b, s = this.m.surf || 0, yt = b;      // yt: suelo de tierra (escalones y lomas); los objetos no se rellenan de tierra
     for (const o of this.obs) {
       if (x < o.x0 || x > o.x0 + o.w) continue;
       const ed = Math.min(x - o.x0, o.x0 + o.w - x);
-      if (o.t === 'step') { y = Math.max(y, b + Math.min(o.h, 0.04 + ed * this.sc)); continue; }
+      if (o.t === 'step') { y = Math.max(y, b + Math.min(o.h, 0.04 + ed * this.sc)); yt = Math.max(yt, y); continue; }
       if (o.t === 'slab') { const u = x - o.x0, hy = u < o.up ? o.h * u / o.up : u < o.up + o.flat ? o.h : o.h * (1 - (u - o.up - o.flat) / o.dn);
-        const sm = t => t * t * (3 - 2 * t), q = Math.max(0, Math.min(1, hy / o.h)); y = Math.max(y, b + o.h * (0.15 * sm(q) + 0.85 * q)); continue; }
+        const sm = t => t * t * (3 - 2 * t), q = Math.max(0, Math.min(1, hy / o.h)); y = Math.max(y, b + o.h * (0.15 * sm(q) + 0.85 * q)); yt = Math.max(yt, y); continue; }
       const u = (x - o.x0) / o.w, p = o.T.p, f = u * (p.length - 1), i = Math.floor(f), t = f - i;
       const hp = (p[i] + ((p[i + 1] != null ? p[i + 1] : p[i]) - p[i]) * t) * o.h - o.sink;
       if (hp > 0.02) { y = Math.max(y, b + Math.min(hp - 0.03, 0.05 + ed * this.sc)); }
     }
-    this.h.push(y); this.s.push(s); this.v.push(0);
+    this.h.push(y); this.s.push(s); this.v.push(Math.max(0, y - yt));
   }
 }
 
