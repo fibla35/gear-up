@@ -396,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 17:40</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 18:10</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -1573,8 +1573,11 @@ function update(dt){
   if (!run.reason && run.progT > 12) run.reason = 'atascado';
   if (run.fuel <= 0 && !run.reason) {
     if (Math.abs(car.vx) < 0.4 && car.grounded) run.stillT += dt; else run.stillT = 0;
-    if (run.stillT > 1.4) run.reason = 'fuel';
-  }
+    // sin gasolina: como mucho 10 s más (aunque siga rodando cuesta abajo), con cuenta atrás los últimos 5
+    const t0 = run.noFuelT || 0; run.noFuelT = t0 + dt;
+    if (run.noFuelT > 5 && Math.floor(run.noFuelT) !== Math.floor(t0)) popup(null, '⛽ ' + (10 - Math.floor(run.noFuelT)), '#ff7043');
+    if (run.stillT > 1.4 || run.noFuelT >= 10) run.reason = 'fuel';
+  } else if (run.fuel > 0) run.noFuelT = 0;
   if (run.reason) { run.overT += dt; if (run.overT > (run.reason === 'fuel' || run.reason === 'atascado' ? 0.3 : 1.3)) gameOver(); }
 
   // gancho de la grúa (péndulo)
@@ -1746,11 +1749,10 @@ function groundPattern(a){
   return patCache;
 }
 const STRIP = { 1:['#6d4c41','#3e2723'], 2:['#e1f5fe','#81d4fa'], 3:['#f3d08a','#d9a54e'], 4:['#bcaaa4','#6d4c41'], 5:['#ffab00','#ff3d00'], 6:['#a8a8a8','#616161'], 7:['#ffffff','#cfd8dc'] };
-// decorados que parecen rampas, escaleras u obstáculos (confunden: parece que hay que saltarlos)
-const NO_SCENERY = new Set(['toscana/o7','obras/o2','montserrat/o5','machupicchu/o4','machupicchu/o5','noruega/o3','monumentvalley/o0','amazonas/o4',
-  'trial_cantera/o0','trial_cantera/o1','trial_bosque/o2','trial_bosque/o3','trial_desguace/o0','trial_desguace/o1','trial_desguace/o2','trial_desguace/o3','trial_rio/o0','trial_estadio/o5'].map(k => 'map/' + k));
+// decorado delante del fondo: solo árboles y plantas en mapas de bosque o montaña; el resto, solo el fondo
+const SCENERY_OK = new Set(['patagonia/o1','kilimanjaro/o3','trial_bosque/o0','trial_bosque/o1','trial_bosque/o5','trial_cantera/o5','trial_rio/o2'].map(k => 'map/' + k));
 function drawScenery(x0, x1){
-  const a = artOf(map), objs = MANIFEST.maps[a].objs.filter(o => !o.wide && !NO_SCENERY.has(o.n)); if (!objs.length) return;
+  const a = artOf(map), objs = MANIFEST.maps[a].objs.filter(o => !o.wide && SCENERY_OK.has(o.n)); if (!objs.length) return;
   const step = 15;
   for (let k = Math.floor(x0 / step) - 1; k < x1 / step + 1; k++) {
     if (k * step < 8 || hx(k) < 0.35) continue;
