@@ -396,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 19:05</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 19:20</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -577,6 +577,9 @@ MAPS.forEach(m => { if (m.test) return; const has = t => m.feats.some(f => f[0] 
   if (!m.test) m.feats.push(['longhill', 2, 1]);
   if (TUNEL[m.id]) m.feats.push(['tunnel', TUNEL[m.id], 2]); });
 const VEHICLES = KEEP.map(id => { const sp = Object.assign({}, EXTRA7[id] ? EXTRA7[id] : id === 'patrol' ? PATROL : id === 'trial2' ? TRIAL2 : id === 'trialc' ? TRIALC : VSPEC.find(v => v.id === id)); sp.wheel = Array.isArray(SR_WHEEL[id]) ? SR_WHEEL[id].slice() : [SR_WHEEL[id]]; if (id === 'motonieve') { delete sp.track; delete sp.trackW; } sp.price = PRICE[id]; if (LEN[id]) sp.len = LEN[id]; return buildVehicle(sp); });
+// color de fábrica variado entre básicos (rojo, azul, negro); los bomberos siempre rojos
+const BASE_COLORS = ['#e53935', '#1e88e5', '#212121', '#b71c1c', '#3949ab'];
+VEHICLES.forEach((v, i) => { v.color = v.id === 'bomberos' ? '#e53935' : BASE_COLORS[i % BASE_COLORS.length]; });
 
 // ================== SUPERFICIES ==================
 // 0 tierra, 1 barro, 2 hielo, 3 arena, 4 madera, 5 lava, 6 roca, 7 nieve
@@ -1084,7 +1087,7 @@ if (typeof module !== 'undefined') module.exports = { PARTS, PART_ORDER, UPGRADE
 //  GEAR UP! GARAGE RACING — núcleo (guardado, recursos, audio, partida)
 // =====================================================================
 const COLORS = ['#e53935','#fdd835','#ff9800','#43a047','#1e88e5','#8e24aa','#212121','#26c6da','#fafafa','#ec407a','#6d4c41','#76ff03','#ffd54f','#3949ab','#b71c1c','#00897b'];
-const COLOR_PRICE = c => (c === '#e53935' ? 0 : 300);
+const COLOR_PRICE = c => (save && save.test) || ['#e53935', '#1e88e5', '#212121', '#b71c1c', '#3949ab'].includes(c) ? 0 : 300;   // básicos gratis
 const PATTERNS = [
   { id:'liso', name:'Liso', price:0 }, { id:'rayas', name:'Rayas racing', price:500, vin:1 }, { id:'llamas', name:'Llamas', price:1200, vin:0 },
   { id:'cuadros', name:'Cuadros', price:800, vin:2 }, { id:'rayos', name:'Rayo', price:1000, vin:3 }, { id:'camo', name:'Camuflaje', price:900, vin:4 },
@@ -1145,6 +1148,7 @@ try {
 // las ruedas gigantes pasan de «Neumáticos» a «Tamaño de rueda»
 save.parts = save.parts.map(p => p === 'tires:gigantes' ? 'rsize:gigantes' : p);
 for (const id in save.cfg) { const c = save.cfg[id]; if (c && c.tires === 'gigantes') { c.tires = 'serie'; c.rsize = 'gigantes'; } }
+if (!save.colMig) { for (const id in save.cfg) { const c = save.cfg[id], v = VEHICLES.find(x => x.id === id); if (c && v && c.color === '#e53935' && (c.pattern || 'liso') === 'liso') c.color = v.color; } save.colMig = 1; }
 for (const id of ['toscana', 'pruebas']) if (!save.ownedM.includes(id)) save.ownedM.push(id);
 if (!save.ownedV.includes('jeep')) save.ownedV.push('jeep');
 if (!VEHICLES.some(v => v.id === save.selV)) save.selV = 'jeep';
@@ -1158,7 +1162,7 @@ const vIdx = id => VEHICLES.findIndex(v => v.id === id);
 const mIdx = id => MAPS.findIndex(m => m.id === id);
 const pilotOf = () => PILOTS[0];   // cada vehículo lleva ya su piloto dibujado: sin selector de pilotos
 function partOwned(cat, id, def){ const p = partOf(cat, id); return p.price === 0 || (cat === 'trac' && def && def.trac === id) || (cat === 'turbo' && def && def.rocket && id === 'cohete') || save.parts.includes(cat + ':' + id); }
-function paintOwned(key, price){ const pt = key.startsWith('p:') && PATTERNS.find(p => 'p:' + p.id === key); if (pt && pt.cofre) return save.paint.includes(key); return price === 0 || save.paint.includes(key); }
+function paintOwned(key, price){ if (save.test) return true; const pt = key.startsWith('p:') && PATTERNS.find(p => 'p:' + p.id === key); if (pt && pt.cofre) return save.paint.includes(key); return price === 0 || save.paint.includes(key); }
 
 // ---------- canvas ----------
 const cv = document.getElementById('cv'); let ctx = cv.getContext('2d');
@@ -2061,7 +2065,8 @@ function tinted(def, cfg){
     if (p[i + 3] > 20 && r > 70 && r > g * 1.55 && r > b * 1.45) {
       const l = r / 225, hi = Math.max(0, (Math.min(g, b) / r) - 0.2) * 1.6; // brillo
       if (fin) { const px = (i >> 2) % w, py = ((i >> 2) / w) | 0, c = finColor(fin, px, py, w, h, l, hi); q[i] = c[0]; q[i + 1] = c[1]; q[i + 2] = c[2]; q[i + 3] = p[i + 3]; }
-      else { q[i] = Math.min(255, cr * l * 1.08 + 255 * hi); q[i + 1] = Math.min(255, cg * l * 1.08 + 255 * hi); q[i + 2] = Math.min(255, cb * l * 1.08 + 255 * hi); q[i + 3] = p[i + 3]; }
+      else { const dk = (cr + cg + cb) < 200 ? 38 * l : 0;   // colores oscuros (negro): algo de volumen para que no quede plano
+        q[i] = Math.min(255, cr * l * 1.08 + dk + 255 * hi); q[i + 1] = Math.min(255, cg * l * 1.08 + dk + 255 * hi); q[i + 2] = Math.min(255, cb * l * 1.08 + dk + 255 * hi); q[i + 3] = p[i + 3]; }
     }
   }
   xp.putImageData(pd, 0, 0);
@@ -2487,7 +2492,7 @@ function renderMenu(){
       const sw = (key, color, price, sel, attr) => { const own = paintOwned(key, price);
         return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'} ${justBought && attr.includes(justBought) ? 'flash' : ''}" style="background:${color}" ${attr}>${sel ? '✔' : own ? '' : '🔒'}</button><small class="${sel ? 'on' : ''}">${sel ? 'Puesto' : own ? 'Tuyo' : '<span class="coin"></span>' + price}</small></div>`; };
       inner = `<div class="sec"><div class="secT">🎨 Color de la carrocería</div><div class="sws">${COLORS.map(c => sw('c:' + c, c, COLOR_PRICE(c), cfg.color === c, `data-color="${c}"`)).join('')}</div></div>
-        <div class="sec"><div class="secT">🎁 Acabados especiales <span class="excl">SOLO EN COFRES</span></div><div class="sws">${FINISH.map(f => { const own = save.paint.includes(f.id), sel = cfg.color === f.id; return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'}" style="background:${FIN_SW[f.id]}" ${own ? `data-color="${f.id}"` : 'data-finlock="1"'} title="${f.n}">${sel ? '✔' : own ? '' : '🎁'}</button><small class="${sel ? 'on' : ''}">${own ? f.n : ['Madera', 'Plata', 'Oro', 'Leyenda'][f.r]}</small></div>`; }).join('')}</div></div>
+        <div class="sec"><div class="secT">🎁 Acabados especiales <span class="excl">SOLO EN COFRES</span></div><div class="sws">${FINISH.map(f => { const own = save.test || save.paint.includes(f.id), sel = cfg.color === f.id; return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'}" style="background:${FIN_SW[f.id]}" ${own ? `data-color="${f.id}"` : 'data-finlock="1"'} title="${f.n}">${sel ? '✔' : own ? '' : '🎁'}</button><small class="${sel ? 'on' : ''}">${own ? f.n : ['Madera', 'Plata', 'Oro', 'Leyenda'][f.r]}</small></div>`; }).join('')}</div></div>
         <div class="sec"><div class="secT">✨ Vinilo</div><div class="chips">${PATTERNS.map(p => chip(p.name, cfg.pattern === p.id ? 'Puesto' : paintOwned('p:' + p.id, p.price) ? 'Toca para ponerlo' : p.cofre ? '🎁 Sale en cofres' : 'Vinilo', cfg.pattern === p.id ? 'eq' : paintOwned('p:' + p.id, p.price) ? '' : 'locked', `data-pat="${p.id}"`, p.vin != null ? 'vin/' + p.vin : null, p.price)).join('')}</div></div>`;
     }
     body = subs + (owned ? '' : '<div class="note">Compra el vehículo para montarle piezas.</div>') + inner;
