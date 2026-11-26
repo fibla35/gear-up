@@ -25,7 +25,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 #fuelWrap.low #fuelBar{animation:blink .5s infinite alternate}
 @keyframes blink{to{border-color:#ff1744;background:rgba(255,23,68,.45)}}
 #distBox{text-align:center}
-#dist{font-family:'Lilita One',sans-serif;font-size:30px;text-shadow:0 3px 0 rgba(0,0,0,.45),0 0 8px rgba(0,0,0,.35)}
+#dist{white-space:nowrap;font-family:'Lilita One',sans-serif;font-size:30px;text-shadow:0 3px 0 rgba(0,0,0,.45),0 0 8px rgba(0,0,0,.35)}
 #best{font-size:12px;opacity:.95;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 #dist{color:#fff}
 #coinsHud .coin{width:20px;height:20px}
@@ -131,8 +131,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .sws{padding-bottom:8px}
 .excl{font-size:10px;background:linear-gradient(90deg,#ff6d00,#ffd600);color:#3e2000;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:middle}
 #cargoHud{position:fixed;right:16px;top:64px;font-weight:900;font-size:15px;color:#ffd180;background:rgba(20,10,0,.55);border-radius:10px;padding:4px 10px;pointer-events:none}
-#comboHud{position:fixed;left:16px;top:72px;font-family:'Lilita One',sans-serif;font-size:17px;color:#ff9ec4;text-shadow:0 2px 0 #6a1b4d;pointer-events:none;padding:3px 12px 9px;border-radius:10px;background:rgba(20,10,30,.6);white-space:nowrap;z-index:5}
-#comboHud::after{content:'';position:absolute;left:12px;bottom:4px;height:3px;border-radius:2px;width:calc(var(--cb,1)*(100% - 24px));background:#ff80ab;box-shadow:0 0 6px #ff80ab}
+#comboHud{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);font-family:'Lilita One',sans-serif;font-size:14px;color:#ff9ec4;text-shadow:0 1px 0 #6a1b4d;pointer-events:none;padding:2px 10px 6px;border-radius:9px;background:rgba(20,10,30,.5);white-space:nowrap;z-index:5}
+#comboHud::after{content:'';position:absolute;left:10px;bottom:2px;height:2px;border-radius:2px;width:calc(var(--cb,1)*(100% - 24px));background:#ff80ab;box-shadow:0 0 6px #ff80ab}
 #wheelieHud{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-family:'Lilita One',sans-serif;font-size:26px;color:#69f0ae;text-shadow:0 3px 0 #0b5d2a,0 0 12px rgba(0,0,0,.4);pointer-events:none}
 .recs{font-size:12px;text-align:center;margin-top:4px;opacity:.9}
 
@@ -175,7 +175,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .setRow{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:10px;margin:10px 0;font-weight:900;text-align:left}
 .setRow select{width:100%;padding:8px;border-radius:10px;border:2px solid rgba(255,255,255,.3);background:#0d1830;color:#fff;font:700 15px Nunito,sans-serif}
 #distRow{display:flex;align-items:baseline;justify-content:center;gap:12px}
-#spd{font-family:'Lilita One',sans-serif;font-size:19px;color:#80d8ff;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 6px rgba(0,0,0,.4);min-width:78px;text-align:left}
+#spd{white-space:nowrap;font-family:'Lilita One',sans-serif;font-size:19px;color:#80d8ff;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 6px rgba(0,0,0,.4);min-width:78px;text-align:left}
 .res.recV{color:#69f0ae}
 #fuelWrap.elec #fuelFill{background:linear-gradient(90deg,#00b0ff,#80d8ff)!important}
 #loader{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(ellipse at 50% 35%,#24407a,#0a1226 70%);transition:opacity .45s}
@@ -218,9 +218,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .pop{display:flex;flex-direction:column;align-items:center}
 .pop img{max-width:min(62vw,360px);max-height:22vh;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
 
-.tut{position:fixed;top:92px;max-width:46%;display:flex;align-items:center;gap:10px;background:rgba(10,20,40,.82);border:2px solid #ffd740;border-radius:16px;padding:10px 14px;color:#fff;font-size:17px;line-height:1.25;pointer-events:none;z-index:6;animation:tutIn .35s ease-out}
-.tut img{width:62px;height:62px;object-fit:contain;animation:tutHand 1s ease-in-out infinite}
-.tut.r{right:18px}.tut.l{left:18px}.tut.c{left:50%;transform:translateX(-50%)}
+.tut{position:fixed;top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 34%);left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:max-content;max-width:min(92vw,520px);display:flex;align-items:center;gap:8px;background:rgba(10,20,40,.78);border:2px solid #ffd740;border-radius:12px;padding:5px 12px;color:#fff;font-size:14px;line-height:1.2;pointer-events:none;z-index:6;animation:tutIn .35s ease-out}
+.tut img{width:34px;height:34px;flex:0 0 auto;object-fit:contain;animation:tutHand 1s ease-in-out infinite}
+.tut.r{right:18px}
+@media (orientation:landscape){.tut{bottom:auto!important;top:calc(env(safe-area-inset-top,0px) + 112px)!important}}.tut.l{left:18px}.tut.c{left:50%;transform:translateX(-50%)}
 .tut b{color:#ffd740}
 @keyframes tutIn{from{opacity:0;margin-top:-14px}}@keyframes tutHand{50%{transform:scale(.9)}}
 .chBtn{position:relative}.chBtn .dot{position:absolute;top:-4px;right:-4px;background:#ff1744;color:#fff;border-radius:10px;font-size:12px;font-weight:900;padding:1px 6px}.chBtn .dot.gray{background:#546e7a}
@@ -395,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 07:10</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 07:40</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -1514,7 +1515,7 @@ function update(dt){
       sfx(n > 1 || mixed ? 'combo' : 'etapa', 0.5);
       if (Math.random() < 0.6) aiSay(AI_LINES[6]);
     } else if (run.air > 1.6 && !car.crashed) { const b = Math.round(run.air * 20 * mapMul()); run.bonus += b; comboAdd('vuelo', b); popup('vuelo', b ? '+' + b : ''); }
-    if (run.air > 0.7 && !car.crashed && car.wheels.length >= 2 && car.wheels.every(w => w.contact)) {
+    if (run.air > 1.1 && !car.crashed && car.wheels.length >= 2 && car.wheels.every(w => w.contact)) {
       const sl = Math.atan2(terr.H(car.x + 1) - terr.H(car.x - 1), 2);
       let d = car.a - sl; d = Math.atan2(Math.sin(d), Math.cos(d));
       if (Math.abs(d) < 0.14) { const b = Math.round((30 + run.air * 18) * mapMul()); run.bonus += b; comboAdd('perfecto', b); popup('perfecto', '+' + b, '#80d8ff'); }
@@ -1590,7 +1591,7 @@ function update(dt){
   const back = car.pts.reduce((m, p) => p[0] < m[0] ? p : m, [1e9, 0]);
   if (inp > 0 && run.fuel > 0 && Math.random() < 0.35 && car.snd !== 'elec' && !def.pedal && !def.regen)
     particles.push({ x:car.x + back[0] * ca - (back[1] * 0.3) * sa, y:car.y + back[0] * sa + (back[1] * 0.3) * ca, vx:-1 - Math.random(), vy:0.6 + Math.random() * 0.6, life:0.5, max:0.5, s:0.1, c:car.snd === 'diesel' ? 'rgba(40,40,40,' : 'rgba(110,110,110,', smoke:true });
-  if (map.fx === 'rain' && run.raining) for (let i = 0; i < 4; i++) particles.push({ x:cam.x + (Math.random() - 0.4) * W / cam.s * 1.2, y:cam.y + Hh * 0.55 / cam.s, vx:-3, vy:-22, life:1.2, max:1.2, s:0.02, c:'rgba(200,220,255,.6)', rain:true });
+  if (false) particles.push({ x:cam.x + (Math.random() - 0.4) * W / cam.s * 1.2, y:cam.y + Hh * 0.55 / cam.s, vx:-3, vy:-22, life:1.2, max:1.2, s:0.02, c:'rgba(200,220,255,.6)', rain:true });
   if (map.fx === 'sandstorm' && Math.random() < 0.6) particles.push({ x:cam.x + W * 0.6 / cam.s, y:cam.y + (Math.random() - 0.5) * Hh / cam.s, vx:-14 - Math.random() * 6, vy:-1, life:2, max:2, s:0.05, c:map.id === 'marte' ? '#ff8a50' : '#e6c27a', ember:true });
   for (const p of particles) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.dust) p.vy -= map.g * 0.5 * dt; else if (p.smoke) p.vy += 0.5 * dt; if (!p.ember && !p.rain) p.s += dt * (p.smoke ? 0.5 : 0.05); }
   particles = particles.filter(p => p.life > 0);
@@ -1991,6 +1992,21 @@ function drawSnow(){
   }
   ctx.globalAlpha = 1;
 }
+// lluvia en pantalla (como la nieve): las gotas caen en la vista y se inclinan un poco con la velocidad, no se quedan atrás
+let RAIN = null, rainT = 0;
+function drawRain(){
+  const dt = Math.min(0.05, Math.max(0, run.t - rainT)); rainT = run.t;
+  if (!RAIN || RAIN.W !== W) { RAIN = { W, d:[] }; for (let k = 0; k < 140; k++) RAIN.d.push({ x:Math.random() * W, y:Math.random() * Hh, z:0.4 + Math.random() * 0.6 }); }
+  const vx = (car ? car.vx : 0) * cam.s, sl = Math.max(-0.35, Math.min(0.35, -vx / 900)), L = Math.max(10, Hh * 0.035);
+  ctx.strokeStyle = 'rgba(200,220,255,.55)'; ctx.lineCap = 'round';
+  for (const p of RAIN.d) {
+    const sp = (900 + 700 * p.z) * Math.max(0.6, Hh / 420);
+    p.y += sp * dt; p.x += (sl * sp - vx * 0.25 * p.z) * dt;
+    if (p.y > Hh + 10) { p.y = -10; p.x = Math.random() * W; }
+    if (p.x < -20) p.x += W + 40; else if (p.x > W + 20) p.x -= W + 40;
+    ctx.lineWidth = 1 + p.z; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - sl * L * p.z, p.y - L * p.z); ctx.stroke();
+  }
+}
 function drawFx(){
   const fx = map.fx;
   if (fx === 'fog' || fx === 'sandstorm') {
@@ -2009,7 +2025,7 @@ function drawFx(){
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
   }
   if ((map.id === 'alpes' || map.id === 'himalaya') && !(run.tunK > 0.6)) drawSnow();
-  if (fx === 'rain' && run.raining) { ctx.fillStyle = 'rgba(40,60,90,.18)'; ctx.fillRect(0, 0, W, Hh); }
+  if (fx === 'rain' && run.raining) { ctx.fillStyle = 'rgba(40,60,90,.18)'; ctx.fillRect(0, 0, W, Hh); if (!(run.tunK > 0.6)) drawRain(); }
   if (fx === 'wind' || fx === 'sandstorm') {
     const wv = terr.env.wind; if (Math.abs(wv) > 0.6) {
       ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
