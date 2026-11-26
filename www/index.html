@@ -396,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 19:45</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 21:35</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -1250,17 +1250,17 @@ function engineSound(on, rpm, thr, c){
   if (eng.gear !== gi) { if (eng.gear != null && on) eng.shiftT = t; eng.gear = gi; }
   const shifting = eng.shiftT && t - eng.shiftT < (c && c.def.cat === 'moto' ? 0.13 : 0.09);
   // explosiones audibles: frecuencia de encendido = mitad del tono base (monocilíndrico)
-  const pop = E.pop || 0; eng.lfoG.gain.setTargetAtTime(pop * (1 - thr * 0.35), t, 0.05);
-  const fr = (E.b * (1 + rf * (E.pop ? 1.8 : 2.6)) + thr * E.b * 0.25) * (c ? c.exPitch || 1 : 1);
+  const pop = (E.pop || 0) + (snd === 'elec' ? 0 : 0.12); eng.lfoG.gain.setTargetAtTime(pop * (1 - thr * 0.2), t, 0.05);   // pulsos de escape: ronquido
+  const fr = (E.b * (1 + rf * (E.pop ? 1.3 : 1.7)) + thr * E.b * 0.08) * (c ? c.exPitch || 1 : 1) * (snd === 'elec' ? 1 : 0.82);   // más grave y ronco
   eng.lfo.frequency.setTargetAtTime(Math.max(8, fr * 0.5), t, 0.05);
   const wave = snd === 'elec' ? 'sine' : 'sawtooth'; if (eng.o.type !== wave) eng.o.type = wave;
   eng.o.frequency.setTargetAtTime(fr, t, 0.04); eng.o2.frequency.setTargetAtTime(fr * 0.5, t, 0.04); eng.o3.frequency.setTargetAtTime(fr * 2.01, t, 0.04);
-  eng.g3.gain.setTargetAtTime(E.z, t, 0.1); eng.g2.gain.setTargetAtTime(snd === 'elec' ? 0 : 1, t, 0.05);
-  eng.f.frequency.setTargetAtTime(E.f * (0.7 + thr * 0.45 + rf * 0.5), t, 0.06);
-  eng.g.gain.setTargetAtTime(on && save.sound && !(c && c.def.pedal) ? E.v * (0.55 + thr * 0.6) * (shifting ? 0.3 : 1) * (c ? c.exVol || 1 : 1) : 0, t, shifting ? 0.02 : 0.07);
+  eng.g3.gain.setTargetAtTime(E.z * 0.55, t, 0.1); eng.g2.gain.setTargetAtTime(snd === 'elec' ? 0 : 1.5, t, 0.05);   // más subgrave (ronquido)
+  eng.f.frequency.setTargetAtTime(E.f * (0.6 + thr * 0.15 + rf * 0.3), t, 0.06);
+  eng.g.gain.setTargetAtTime(on && save.sound && !(c && c.def.pedal) ? E.v * (0.6 + thr * 0.25) * (shifting ? 0.3 : 1) * (c ? c.exVol || 1 : 1) : 0, t, shifting ? 0.02 : 0.07);
   const tw = c && (c.turbo === 'turbo' || c.nitroOn) && on && save.sound;
   eng.wh.frequency.setTargetAtTime(700 + rpm * 14, t, 0.1);
-  eng.wg.gain.setTargetAtTime(tw ? 0.006 + (c.nitroOn ? 0.008 : 0) : 0, t, 0.1);
+  eng.wg.gain.setTargetAtTime(tw ? 0.004 + (c.nitroOn ? 0.005 : 0) : 0, t, 0.1);
 }
 function blip(f1, f2, dur, type, vol){
   if (!AC || !save.sound) return;
