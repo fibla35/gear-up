@@ -367,6 +367,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 .tz b{font-family:'Lilita One',sans-serif;font-size:15px}.tz small{font-size:8px;color:#ffd740;letter-spacing:-1px}
 .tz.lock{opacity:.45}.tz.gold{border-color:#ffd740;box-shadow:0 0 8px rgba(255,215,64,.5)}
 .tStars{font-size:38px;color:#ffd740;letter-spacing:4px;text-shadow:0 2px 6px rgba(0,0,0,.5);margin:-4px 0 6px}
+
+/* progreso: nivel, XP y maestría */
+.lvlPill{display:flex;align-items:center;gap:6px;font-size:16px;font-weight:800;color:#ffd54f}
+.xpBar{display:inline-block;width:54px;height:7px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden;vertical-align:middle}
+.xpBar i{display:block;height:100%;background:linear-gradient(90deg,#ffca28,#ff7043)}
+.res.xpRes .xpBar{width:90px;margin-left:6px}
+.res.lvlUp{background:linear-gradient(90deg,rgba(255,213,79,.28),rgba(255,112,67,.18));border-radius:8px;font-weight:800}
+.res.xpNext{font-size:12px;opacity:.8}
+.mast{margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(0,0,0,.25);font-size:13px}
+.mastH{font-weight:800;margin-bottom:3px}.mastH b{color:#ffd54f;letter-spacing:2px}.mastH small{opacity:.7;font-weight:400}
+.mastOk{color:#ffd54f}
+.mastG{display:flex;justify-content:space-between;opacity:.85}.mastG.ok{color:#9ccc65}.mastG em{font-style:normal;opacity:.75}
 </style>
 </head>
 <body>
@@ -396,7 +408,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Nu
 </div>
 
 <div id="loader"><img class="ldLogo" src="img/ui/logo.webp" alt=""><div class="ldBar"><div id="ldFill"></div></div><div id="ldPct">0 %</div><div id="ldTip"></div></div>
-<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 26-11 21:50</div></div>
+<div id="title" class="hidden"><img class="tlogo" src="img/ui/logo.webp" alt="Gear Up! Garage Racing"><button id="titlePlay"><span class="tpFlag"></span><span class="tpTxt">¡A RODAR!</span><span class="tpArr">▶▶</span><span class="tpShine"></span></button><div class="tsub">Taller · 44 vehículos · 22 mapas · modo Trial · versión 27-11 10:30</div></div>
 <div id="menu" class="screen hidden"></div>
 <div id="overlay" class="overlay hidden"><div class="box" id="ovBox"></div></div>
 
@@ -1522,8 +1534,9 @@ function update(dt){
     if (run.air > 1.1 && !car.crashed && car.wheels.length >= 2 && car.wheels.every(w => w.contact)) {
       const sl = Math.atan2(terr.H(car.x + 1) - terr.H(car.x - 1), 2);
       let d = car.a - sl; d = Math.atan2(Math.sin(d), Math.cos(d));
-      if (Math.abs(d) < 0.14) { const b = Math.round((30 + run.air * 18) * mapMul()); run.bonus += b; comboAdd('perfecto', b); popup('perfecto', '+' + b, '#80d8ff'); }
+      if (Math.abs(d) < 0.14) { const b = Math.round((30 + run.air * 18) * mapMul()); run.bonus += b; comboAdd('perfecto', b); popup('perfecto', '+' + b, '#80d8ff'); buzz([18, 50, 30]); }
     }
+    if (run.air > 0.7 && !car.crashed) buzz(Math.round(Math.min(55, 12 + run.air * 14)));
     run.air = 0; run.airRot = 0; run.seq = [];
   }
   // caballitos
@@ -1573,7 +1586,7 @@ function update(dt){
   if (run.progT > 7 && !run.warned) { run.warned = true; popup(null, '¿ATASCADO?', '#ff8a80'); }
 
   // fin de partida
-  if (car.crashed && !run.reason) { run.reason = car.crashed; crashSound(); sfx('ko', 0.6); }
+  if (car.crashed && !run.reason) { run.reason = car.crashed; crashSound(); sfx('ko', 0.6); buzz(200); }
   if (!run.reason && run.progT > 12) run.reason = 'atascado';
   if (run.fuel <= 0 && !run.reason) {
     if (Math.abs(car.vx) < 0.4 && car.grounded) run.stillT += dt; else run.stillT = 0;
@@ -1665,6 +1678,9 @@ function gameOver(){
   const total = run.coins + run.bonus + passB;
   save.coins += total; persist();
   const chT = typeof chestEarn === 'function' ? chestEarn(d) : null;
+  const flipsN = (run.flipB || 0) + (run.flipF || 0);
+  const xpG = map.test ? null : xpGain(5 + d / 8 + flipsN * 4 + (run.cbBest || 0) * 3 + (run.delivered || 0) * 5);
+  const mastR = mastCheck(car.def, d, flipsN);
   const evtHtml = typeof eventResult === 'function' ? eventResult(d) : '';
   const rot = { ko:'a2', volcado:'a3', fuel:'a5', lava:'a6', atascado:'a7' }[run.reason];
   document.getElementById('ovBox').innerHTML =
@@ -1684,7 +1700,7 @@ function gameOver(){
     `<div class="res"><span>Bonus (acrobacias y etapas)</span><span>${run.bonus}</span></div>` +
     (chT != null ? (chT >= 0 ? `<div class="res chWin"><span><img src="img/chest/${chT}.webp"> ¡${CHEST[chT].n}!</span><span>Ábrelo en 🎁</span></div>` : `<div class="res"><span>🎁 Cofres llenos</span><span>abre alguno para ganar más</span></div>`) : '') +
     evtHtml + (run.dmgRun > 0.02 ? `<div class="res"><span>🔧 Daños en esta carrera</span><span>+${Math.round(run.dmgRun * 100)} % · repara en el taller</span></div>` : '') +
-    `<div class="res big"><span>Total</span><span><span class="coin"></span> +${total}</span></div>` +
+    `<div class="res big"><span>Total</span><span><span class="coin"></span> +${total}</span></div>` + xpRows(xpG) + mastRows(car.def, mastR) +
     `<div class="boxBtns"><button class="btn blue" id="bGar">🚪 Salir al taller</button><button class="btn green" id="bRetry">↻ Otra vez</button></div>`;
   show('overlay'); if (rec) sfx('record', 0.6);
   document.getElementById('aiBox').classList.add('hidden');
@@ -2494,7 +2510,7 @@ function renderMenu(){
       const sw = (key, color, price, sel, attr) => { const own = paintOwned(key, price);
         return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'} ${justBought && attr.includes(justBought) ? 'flash' : ''}" style="background:${color}" ${attr}>${sel ? '✔' : own ? '' : '🔒'}</button><small class="${sel ? 'on' : ''}">${sel ? 'Puesto' : own ? 'Tuyo' : '<span class="coin"></span>' + price}</small></div>`; };
       inner = `<div class="sec"><div class="secT">🎨 Color de la carrocería</div><div class="sws">${COLORS.map(c => sw('c:' + c, c, COLOR_PRICE(c), cfg.color === c, `data-color="${c}"`)).join('')}</div></div>
-        <div class="sec"><div class="secT">🎁 Acabados especiales <span class="excl">SOLO EN COFRES</span></div><div class="sws">${FINISH.map(f => { const own = save.test || save.paint.includes(f.id), sel = cfg.color === f.id; return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'}" style="background:${FIN_SW[f.id]}" ${own ? `data-color="${f.id}"` : 'data-finlock="1"'} title="${f.n}">${sel ? '✔' : own ? '' : '🎁'}</button><small class="${sel ? 'on' : ''}">${own ? f.n : ['Madera', 'Plata', 'Oro', 'Leyenda'][f.r]}</small></div>`; }).join('')}</div></div>
+        <div class="sec"><div class="secT">🎁 Acabados especiales <span class="excl">SOLO EN COFRES</span></div><div class="sws">${FINISH.map(f => { const own = save.test || (f.id === 'f:maestro' ? mastDone(def.id) : save.paint.includes(f.id)), sel = cfg.color === f.id; return `<div class="swW"><button class="sw ${sel ? 'sel' : ''} ${own ? '' : 'locked'}" style="background:${FIN_SW[f.id]}" ${own ? `data-color="${f.id}"` : 'data-finlock="1"'} title="${f.n}">${sel ? '✔' : own ? '' : '🎁'}</button><small class="${sel ? 'on' : ''}">${own ? f.n : ['Madera', 'Plata', 'Oro', 'Leyenda', 'Maestría'][f.r]}</small></div>`; }).join('')}</div></div>
         <div class="sec"><div class="secT">✨ Vinilo</div><div class="chips">${PATTERNS.map(p => chip(p.name, cfg.pattern === p.id ? 'Puesto' : paintOwned('p:' + p.id, p.price) ? 'Toca para ponerlo' : p.cofre ? '🎁 Sale en cofres' : 'Vinilo', cfg.pattern === p.id ? 'eq' : paintOwned('p:' + p.id, p.price) ? '' : 'locked', `data-pat="${p.id}"`, p.vin != null ? 'vin/' + p.vin : null, p.price)).join('')}</div></div>`;
     }
     body = subs + (owned ? '' : '<div class="note">Compra el vehículo para montarle piezas.</div>') + inner;
@@ -2518,12 +2534,13 @@ function renderMenu(){
   }
   m.innerHTML = `
   <div class="mHead"><img class="mlogo" src="img/ui/logo.webp" alt="Gear Up!">
-    <div style="display:flex;gap:8px;align-items:center"><button class="arrow chBtn" id="chBtn" title="Cofres">🎁${chestReadyCount() ? `<span class="dot">${chestReadyCount()}</span>` : chestSave().length ? `<span class="dot gray">${chestSave().length}</span>` : ''}</button><button class="arrow" id="setBtn" title="Ajustes">⚙️</button><button class="arrow testBtn ${save.test ? 'on' : ''}" id="tst" title="Modo test">🧪</button><div class="pill" style="font-size:20px"><span class="coin"></span>${fmt(save.coins)}</div></div></div>
+    <div style="display:flex;gap:8px;align-items:center">${lvlBadge()}<button class="arrow chBtn" id="chBtn" title="Cofres">🎁${chestReadyCount() ? `<span class="dot">${chestReadyCount()}</span>` : chestSave().length ? `<span class="dot gray">${chestSave().length}</span>` : ''}</button><button class="arrow" id="setBtn" title="Ajustes">⚙️</button><button class="arrow testBtn ${save.test ? 'on' : ''}" id="tst" title="Modo test">🧪</button><div class="pill" style="font-size:20px"><span class="coin"></span>${fmt(save.coins)}</div></div></div>
   <div class="grid">
     <div class="card"><h3>${def.name} <span style="font-size:13px;opacity:.75">${def.cat === 'moto' ? 'Moto' : def.cat === 'pesado' ? 'Pesado' : def.cat === 'loco' ? 'Loco' : 'Coche'} · ${def.trac === '4x4' ? '4x4' : def.trac === 'fwd' ? 'Delantera' : 'Trasera'}</span></h3>
       <div class="vehRow"><button class="arrow" id="vPrev">‹</button><canvas id="prev"></canvas><button class="arrow" id="vNext">›</button></div>
       <div class="vDesc">${def.desc}</div>
       <div class="stats">${stats}</div>
+      ${mastPanel(def)}
       <div class="recs">🏍️ Caballito récord: <b>${save.recW[def.id] || 0} m</b> · pruebas: <b>${save.recWT[def.id] || 0} m</b> · Piloto: <b>${P.name}</b></div>
       <div style="text-align:center;margin-top:8px">${owned ? (def.id === save.selV ? '<button class="btn gray" disabled>✔ Seleccionado</button>' : '<button class="btn blue" id="vSel">Usar este</button>') : `<button class="btn" id="vBuy">Comprar <span class="coin"></span>${fmt(def.price)}</button>`}</div>
     </div>
@@ -2677,20 +2694,20 @@ function dailyNextIndex(){
 function claimDaily(){
   if (!dailyReady()) return;
   const i = dailyNextIndex(), v = DAILY[i];
-  save.daily.streak = i + 1; save.daily.claimed = dayKey(); save.coins += v; persist();
-  sfx('compra', 0.6); toast('✔ Premio diario: +' + fmt(v) + ' monedas');
+  save.daily.streak = i + 1; save.daily.claimed = dayKey(); save.coins += v; if (i === 6) giveChest(3); persist();
+  sfx('compra', 0.6); toast('✔ Premio diario: +' + fmt(v) + ' monedas' + (i === 6 ? ' y 🎁 cofre legendario' : ''));
 }
 function dailyRow(){
   const ready = dailyReady(), next = ready ? dailyNextIndex() : save.daily.streak - 1;
   return `<div class="cal">${DAILY.map((v, i) => {
     const got = ready ? i < next : i <= next, today = ready && i === next;
-    return `<div class="calD ${got ? 'got' : ''} ${today ? 'today' : ''}"><small>Día ${i + 1}</small>${i === 6 ? '🎁' : '🪙'}<b>${fmt(v)}</b>${got ? '<i>✔</i>' : ''}</div>`;
+    return `<div class="calD ${got ? 'got' : ''} ${today ? 'today' : ''}"><small>Día ${i + 1}</small>${i === 6 ? '🎁' : '🪙'}<b>${fmt(v)}${i === 6 ? '<br>+cofre leg.' : ''}</b>${got ? '<i>✔</i>' : ''}</div>`;
   }).join('')}</div>${ready ? '<button class="btn green" id="bDaily">🎁 Cobrar premio de hoy</button>' : '<p class="calNote">Vuelve mañana para el siguiente premio.</p>'}`;
 }
 function maybeDailyPopup(){
   if (!dailyReady() || state !== 'menu') return;
   const box = document.getElementById('ovBox');
-  box.innerHTML = `<h2>🎁 Premio diario</h2>${dailyRow()}`;
+  box.innerHTML = `<h2>🎁 Premio diario</h2><p class="calNote">🔥 Entra cada día seguido: el día 7 te llevas un cofre legendario. Si fallas un día, la racha vuelve a empezar.</p>${dailyRow()}`;
   show('overlay');
   document.getElementById('bDaily').onclick = () => { claimDaily(); hide('overlay'); renderMenu(); };
 }
@@ -3052,6 +3069,7 @@ function trialEnd(ok){
   if (ok && stars > prev) { reward = (stars - prev) * Math.round(120 * (1 + z * 0.25) * (1 + trialCtx.mi * 0.3) / 10) * 10; arr[z] = stars; save.coins += reward; }
   if (ok && !arr[z]) arr[z] = 0;
   persist();
+  const xpG = xpGain(ok ? 15 + stars * 20 + z * 3 : 4);
   const st = n => '★'.repeat(n) + '☆'.repeat(3 - n);
   const next = z + 1 < TRIAL_ZONES && ok && stars > 0;
   document.getElementById('ovBox').innerHTML =
@@ -3062,7 +3080,7 @@ function trialEnd(ok){
     `<div class="res"><span>Tiempo</span><span>${run.t.toFixed(1)} s</span></div>` +
     (ok && !stars ? `<div class="res"><span>Más de 5 faltas</span><span>sin estrellas</span></div>` : '') +
     (reward ? `<div class="res big"><span>Premio</span><span><span class="coin"></span> +${fmt(reward)}</span></div>` : '') +
-    `<div class="boxBtns"><button class="btn blue" id="tBack">🏍️ Zonas</button><button class="btn ${next ? 'gray' : 'green'}" id="tRetry">↻ Repetir</button>${next ? '<button class="btn green" id="tNext">Siguiente ▶</button>' : ''}</div>`;
+    xpRows(xpG) + `<div class="boxBtns"><button class="btn blue" id="tBack">🏍️ Zonas</button><button class="btn ${next ? 'gray' : 'green'}" id="tRetry">↻ Repetir</button>${next ? '<button class="btn green" id="tNext">Siguiente ▶</button>' : ''}</div>`;
   show('overlay'); if (stars === 3) sfx('record', 0.6); else if (ok) sfx('etapa', 0.6); else sfx('ko', 0.6);
   document.getElementById('tRetry').onclick = () => startTrial(trialCtx.mi, z);
   if (next) document.getElementById('tNext').onclick = () => startTrial(trialCtx.mi, z + 1);
@@ -3226,10 +3244,11 @@ const FINISH = [
   { id:'f:cobre', n:'Cobre', r:1 }, { id:'f:carbono', n:'Fibra de carbono', r:1 }, { id:'f:menta', n:'Verde menta metalizado', r:1 },
   { id:'f:oro', n:'Oro', r:2 }, { id:'f:cromo', n:'Cromo espejo', r:2 }, { id:'f:neon', n:'Neón', r:2 },
   { id:'f:camaleon', n:'Camaleón', r:3 }, { id:'f:arcoiris', n:'Arcoíris', r:3 }, { id:'f:galaxia', n:'Galaxia', r:3 },
+  { id:'f:maestro', n:'Maestro', r:4 },   // solo con las 3 estrellas de maestría de ese vehículo
 ];
 const FIN_SW = { 'f:metal_azul':'linear-gradient(135deg,#0d47a1,#64b5f6,#0d47a1)', 'f:mate':'#262626', 'f:perla':'linear-gradient(135deg,#fff,#f3e5f5,#e0f7fa)', 'f:cobre':'linear-gradient(135deg,#8d4a24,#e6a070,#8d4a24)',
   'f:carbono':'repeating-linear-gradient(45deg,#222 0 4px,#3a3a3a 4px 8px)', 'f:menta':'linear-gradient(135deg,#1de9b6,#b9f6ca,#00bfa5)', 'f:oro':'linear-gradient(135deg,#b8860b,#ffe082,#b8860b)', 'f:cromo':'linear-gradient(180deg,#fafafa,#757575 50%,#e0e0e0)',
-  'f:neon':'linear-gradient(135deg,#76ff03,#00e5ff)', 'f:camaleon':'linear-gradient(135deg,#6a1b9a,#00897b,#c6ff00)', 'f:arcoiris':'linear-gradient(90deg,#f44336,#ff9800,#ffeb3b,#4caf50,#2196f3,#9c27b0)', 'f:galaxia':'radial-gradient(circle at 30% 30%,#e040fb,#311b92 60%,#000)' };
+  'f:neon':'linear-gradient(135deg,#76ff03,#00e5ff)', 'f:camaleon':'linear-gradient(135deg,#6a1b9a,#00897b,#c6ff00)', 'f:arcoiris':'linear-gradient(90deg,#f44336,#ff9800,#ffeb3b,#4caf50,#2196f3,#9c27b0)', 'f:galaxia':'radial-gradient(circle at 30% 30%,#e040fb,#311b92 60%,#000)', 'f:maestro':'linear-gradient(135deg,#111 0 35%,#ffd54f 45%,#ff8f00 55%,#111 65%)' };
 function finColor(id, x, y, w, h, l, hi){   // color de un píxel de carrocería con acabado especial
   const H = (hue, s, v) => { const c = v * s, X = c * (1 - Math.abs((hue / 60) % 2 - 1)), m = v - c; let r, g, b;
     if (hue < 60) [r, g, b] = [c, X, 0]; else if (hue < 120) [r, g, b] = [X, c, 0]; else if (hue < 180) [r, g, b] = [0, c, X]; else if (hue < 240) [r, g, b] = [0, X, c]; else if (hue < 300) [r, g, b] = [X, 0, c]; else [r, g, b] = [c, 0, X];
@@ -3249,6 +3268,7 @@ function finColor(id, x, y, w, h, l, hi){   // color de un píxel de carrocería
     case 'f:camaleon': c = H(280 - 200 * (u * 0.7 + v * 0.3), 0.8, 0.55 + 0.4 * band); break;
     case 'f:arcoiris': c = H((u * 330) % 360, 0.85, 0.95); break;
     case 'f:galaxia': { const st = ((x * 7919 + y * 104729) % 97) === 0; if (st) return [255, 255, 255]; c = H(250 + 60 * band, 0.8, 0.18 + 0.4 * band); break; }
+    case 'f:maestro': { const g = Math.abs(((u * 1.6 - v * 0.9) % 0.5 + 0.5) % 0.5 - 0.25) < 0.05; c = g ? H(42, 0.85, 0.95) : H(30, 0.25, 0.07 + 0.18 * band); break; }
     default: c = [200, 40, 40];
   }
   return [Math.min(255, c[0] * (0.55 + 0.6 * l) + 255 * hi), Math.min(255, c[1] * (0.55 + 0.6 * l) + 255 * hi), Math.min(255, c[2] * (0.55 + 0.6 * l) + 255 * hi)];
@@ -3440,6 +3460,78 @@ function dmgOverlay(def, body, lvl){
   DMGC[key] = c; return c;
 }
 function dmgCost(id){ const d = dmgOf(id), v = VEHICLES[vIdx(id)]; return Math.max(50, Math.round((120 + (v.price || 0) * 0.025) * d / 10) * 10); }
+
+// ================= PROGRESO: nivel de piloto (XP), maestría de vehículos y vibración =================
+save.xp = save.xp || 0; save.lvl = save.lvl || 1; save.mast = save.mast || {};
+if (save.vib == null) save.vib = true;
+
+// ---------- vibración (APK / móvil) ----------
+function buzz(p){ if (!save.vib || !navigator.vibrate) return; try { navigator.vibrate(p); } catch (e) {} }
+
+// ---------- cofre de regalo (premios de nivel, racha y maestría): entra aunque estén los 4 huecos llenos ----------
+function giveChest(tier){ const C = chestSave(); C.push({ tier, t0:null }); if (!C.some(c => c.t0)) C[C.length - 1].t0 = Date.now(); }
+const CH_NAME = t => ['Cofre de madera', 'Cofre de plata', 'Cofre de oro', 'Cofre legendario'][t];
+
+// ---------- nivel de piloto ----------
+const XP_NEED = l => 120 + 60 * (l - 1);
+function xpReward(l){   // lo que da llegar al nivel l
+  if (l % 10 === 0) return { chest:3 };
+  if (l % 5 === 0) return { chest:2 };
+  if (l % 2 === 0) return { chest:1 };
+  return { coins:300 + 60 * l };
+}
+const rewTxt = r => r.chest != null ? '🎁 ' + CH_NAME(r.chest) : '<span class="coin"></span>' + fmt(r.coins);
+function xpGain(n){
+  n = Math.max(0, Math.round(n)); save.xp += n; const ups = [];
+  while (save.xp >= XP_NEED(save.lvl)) {
+    save.xp -= XP_NEED(save.lvl); save.lvl++;
+    const r = xpReward(save.lvl); if (r.chest != null) giveChest(r.chest); else save.coins += r.coins;
+    ups.push([save.lvl, r]);
+  }
+  persist(); return { n, ups };
+}
+function xpBar(){ const p = Math.min(100, save.xp / XP_NEED(save.lvl) * 100); return `<span class="xpBar"><i style="width:${p.toFixed(0)}%"></i></span>`; }
+function xpRows(g){
+  if (!g) return '';
+  const nx = xpReward(save.lvl + 1);
+  return `<div class="res xpRes"><span>⭐ Nivel ${save.lvl} ${xpBar()}</span><span>+${g.n} XP</span></div>` +
+    g.ups.map(([l, r]) => `<div class="res lvlUp"><span>🎉 ¡Subes a nivel ${l}!</span><span>${rewTxt(r)}</span></div>`).join('') +
+    `<div class="res xpNext"><span>Próximo nivel</span><span>${rewTxt(nx)} · faltan ${XP_NEED(save.lvl) - save.xp} XP</span></div>`;
+}
+function lvlBadge(){ return `<div class="pill lvlPill" title="Nivel de piloto">⭐ ${save.lvl}${xpBar()}</div>`; }
+
+// ---------- maestría: 3 retos por vehículo; con las 3 estrellas, pintura exclusiva «Maestro» para ese vehículo ----------
+function mastGoals(def){
+  const heavy = def.cat === 'pesado' || def.cat === 'loco' || def.pedal;
+  const D = heavy ? 500 : def.cat === 'moto' ? 700 : 800, F = heavy ? 1 : 3, K = heavy ? 3000 : 5000;
+  return [
+    { t:`Recorre ${D} m en una partida`, v:r => r.d, need:D },
+    { t:F === 1 ? 'Haz 1 voltereta en una partida' : `Haz ${F} volteretas en una partida`, v:r => r.flips, need:F },
+    { t:`Suma ${K / 1000} km en total`, v:r => r.tot, need:K },
+  ];
+}
+function mastOf(id){ return save.mast[id] || (save.mast[id] = { s:[0, 0, 0], tot:0, best:0, fl:0 }); }
+const mastDone = id => { const m = save.mast[id]; return !!m && m.s.every(x => x); };
+function mastCheck(def, d, flips){
+  if (map.test) return [];
+  const m = mastOf(def.id); m.tot += d; m.best = Math.max(m.best, d); m.fl = Math.max(m.fl, flips);
+  const r = { d, flips, tot:m.tot }, got = [];
+  mastGoals(def).forEach((g, i) => { if (!m.s[i] && g.v(r) >= g.need) { m.s[i] = 1; save.coins += 500; got.push(g.t); } });
+  const all = got.length && mastDone(def.id);
+  if (all) giveChest(2);
+  persist(); return { got, all };
+}
+function mastRows(def, res){
+  if (!res || !res.got || !res.got.length) return '';
+  return res.got.map(t => `<div class="res lvlUp"><span>🏅 Maestría: ${t}</span><span><span class="coin"></span>500</span></div>`).join('') +
+    (res.all ? `<div class="res lvlUp"><span>👑 ¡Maestro del ${def.name}! Pintura «Maestro» desbloqueada</span><span>🎁 ${CH_NAME(2)}</span></div>` : '');
+}
+function mastPanel(def){
+  const m = mastOf(def.id), r = { d:m.best, flips:m.fl, tot:m.tot }, G = mastGoals(def);
+  const n = m.s.filter(x => x).length;
+  return `<div class="mast"><div class="mastH">🏅 Maestría <b>${'★'.repeat(n)}${'☆'.repeat(3 - n)}</b>${n === 3 ? ' <span class="mastOk">👑 Maestro</span>' : ' <small>3 ★ = pintura exclusiva</small>'}</div>` +
+    G.map((g, i) => `<div class="mastG ${m.s[i] ? 'ok' : ''}"><span>${m.s[i] ? '✔' : '○'} ${g.t}</span><em>${m.s[i] ? '' : Math.min(g.need, Math.floor(g.v(r))) + '/' + g.need}</em></div>`).join('') + `</div>`;
+}
 
 </script>
 </body>
